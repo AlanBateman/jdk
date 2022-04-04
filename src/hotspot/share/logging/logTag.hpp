@@ -97,6 +97,7 @@ class outputStream;
   LOG_TAG(jit) \
   LOG_TAG(jni) \
   LOG_TAG(jvmci) \
+  LOG_TAG(jvmcont) \
   LOG_TAG(jvmti) \
   LOG_TAG(lambda) \
   LOG_TAG(library) \
@@ -142,6 +143,7 @@ class outputStream;
   LOG_TAG(phases) \
   LOG_TAG(plab) \
   LOG_TAG(placeholders) \
+  LOG_TAG(preempt) \
   LOG_TAG(preorder)  /* Trace all classes loaded in order referenced (not loaded) */ \
   LOG_TAG(preview)   /* Trace loading of preview feature types */ \
   LOG_TAG(promotion) \

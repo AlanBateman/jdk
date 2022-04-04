@@ -26,6 +26,7 @@
 #include "classfile/classLoaderDataGraph.hpp"
 #include "classfile/javaClasses.inline.hpp"
 #include "code/nmethod.hpp"
+#include "gc/shared/continuationGCSupport.inline.hpp"
 #include "gc/shared/gc_globals.hpp"
 #include "gc/shared/stringdedup/stringDedup.hpp"
 #include "gc/shared/suspendibleThreadSet.hpp"
@@ -107,6 +108,8 @@ void ZMark::start() {
   // Increment global sequence number to invalidate
   // marking information for all pages.
   ZGlobalSeqNum++;
+
+  CodeCache::start_marking_cycle();
 
   // Reset flush/continue counters
   _nproactiveflush = 0;
@@ -255,6 +258,11 @@ public:
   virtual void do_oop(narrowOop* p) {
     ShouldNotReachHere();
   }
+
+  virtual void do_nmethod(nmethod* nm) {
+    assert(!finalizable, "Can't handle finalizable marking of nmethods");
+    nm->run_nmethod_entry_barrier();
+  }
 };
 
 void ZMark::follow_array_object(objArrayOop obj, bool finalizable) {
@@ -273,6 +281,14 @@ void ZMark::follow_array_object(objArrayOop obj, bool finalizable) {
 }
 
 void ZMark::follow_object(oop obj, bool finalizable) {
+  if (ContinuationGCSupport::relativize_stack_chunk(obj)) {
+    // Loom doesn't support mixing of finalizable marking and strong marking of
+    // stack chunks. See: RelativizeDerivedOopClosure.
+    ZMarkBarrierOopClosure<false /* finalizable */> cl;
+    obj->oop_iterate(&cl);
+    return;
+  }
+
   if (finalizable) {
     ZMarkBarrierOopClosure<true /* finalizable */> cl;
     obj->oop_iterate(&cl);
@@ -679,6 +695,7 @@ public:
 
     if (ZNMethod::is_armed(nm)) {
       ZNMethod::nmethod_oops_do_inner(nm, _cl);
+      nm->mark_as_maybe_on_continuation();
       ZNMethod::disarm(nm);
     }
   }
@@ -799,6 +816,8 @@ bool ZMark::end() {
 
   // Update statistics
   ZStatMark::set_at_mark_end(_nproactiveflush, _nterminateflush, _ntrycomplete, _ncontinue);
+
+  CodeCache::finish_marking_cycle();
 
   // Mark completed
   return true;

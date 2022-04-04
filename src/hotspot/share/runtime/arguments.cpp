@@ -2570,6 +2570,7 @@ jint Arguments::parse_each_vm_init_arg(const JavaVMInitArgs* args, bool* patch_m
     // --enable_preview
     } else if (match_option(option, "--enable-preview")) {
       set_enable_preview();
+      LoomVM = true;
     // -Xnoclassgc
     } else if (match_option(option, "-Xnoclassgc")) {
       if (FLAG_SET_CMDLINE(ClassUnloading, false) != JVMFlag::SUCCESS) {

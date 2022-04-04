@@ -36,6 +36,7 @@
 #include "gc/shared/cardTableRS.hpp"
 #include "gc/shared/collectedHeap.inline.hpp"
 #include "gc/shared/collectorCounters.hpp"
+#include "gc/shared/continuationGCSupport.inline.hpp"
 #include "gc/shared/gcId.hpp"
 #include "gc/shared/gcLocker.hpp"
 #include "gc/shared/gcPolicyCounters.hpp"
@@ -606,12 +607,16 @@ void GenCollectedHeap::do_collection(bool           full,
       increment_total_full_collections();
     }
 
+    CodeCache::start_marking_cycle();
+
     collect_generation(_old_gen,
                        full,
                        size,
                        is_tlab,
                        run_verification && VerifyGCLevel <= 1,
                        do_clear_all_soft_refs);
+
+    CodeCache::finish_marking_cycle();
 
     // Adjust generation sizes.
     _old_gen->compute_new_size();
@@ -790,7 +795,10 @@ void GenCollectedHeap::full_process_roots(bool is_adjust_phase,
                                           bool only_strong_roots,
                                           OopClosure* root_closure,
                                           CLDClosure* cld_closure) {
-  MarkingCodeBlobClosure mark_code_closure(root_closure, is_adjust_phase);
+  // Called from either the marking phase or the adjust phase.
+  const bool is_marking_phase = !is_adjust_phase;
+
+  MarkingCodeBlobClosure mark_code_closure(root_closure, is_adjust_phase, is_marking_phase);
   CLDClosure* weak_cld_closure = only_strong_roots ? NULL : cld_closure;
 
   process_roots(so, root_closure, cld_closure, weak_cld_closure, &mark_code_closure);
@@ -898,11 +906,15 @@ void GenCollectedHeap::do_full_collection(bool clear_all_soft_refs,
   }
 }
 
-bool GenCollectedHeap::is_in_young(oop p) {
+bool GenCollectedHeap::is_in_young(oop p) const {
   bool result = cast_from_oop<HeapWord*>(p) < _old_gen->reserved().start();
   assert(result == _young_gen->is_in_reserved(p),
          "incorrect test - result=%d, p=" INTPTR_FORMAT, result, p2i((void*)p));
   return result;
+}
+
+bool GenCollectedHeap::requires_barriers(stackChunkOop obj) const {
+  return !is_in_young(obj);
 }
 
 // Returns "TRUE" iff "p" points into the committed areas of the heap.
@@ -1223,19 +1235,4 @@ void GenCollectedHeap::ensure_parsability(bool retire_tlabs) {
   CollectedHeap::ensure_parsability(retire_tlabs);
   GenEnsureParsabilityClosure ep_cl;
   generation_iterate(&ep_cl, false);
-}
-
-oop GenCollectedHeap::handle_failed_promotion(Generation* old_gen,
-                                              oop obj,
-                                              size_t obj_size) {
-  guarantee(old_gen == _old_gen, "We only get here with an old generation");
-  assert(obj_size == obj->size(), "bad obj_size passed in");
-  HeapWord* result = NULL;
-
-  result = old_gen->expand_and_allocate(obj_size, false);
-
-  if (result != NULL) {
-    Copy::aligned_disjoint_words(cast_from_oop<HeapWord*>(obj), result, obj_size);
-  }
-  return cast_to_oop(result);
 }

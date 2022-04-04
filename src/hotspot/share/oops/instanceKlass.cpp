@@ -65,6 +65,7 @@
 #include "oops/instanceKlass.inline.hpp"
 #include "oops/instanceMirrorKlass.hpp"
 #include "oops/instanceOop.hpp"
+#include "oops/instanceStackChunkKlass.hpp"
 #include "oops/klass.inline.hpp"
 #include "oops/method.hpp"
 #include "oops/oop.inline.hpp"
@@ -440,8 +441,9 @@ InstanceKlass* InstanceKlass::allocate_instance_klass(const ClassFileParser& par
   // Allocation
   if (REF_NONE == parser.reference_type()) {
     if (class_name == vmSymbols::java_lang_Class()) {
-      // mirror
       ik = new (loader_data, size, THREAD) InstanceMirrorKlass(parser);
+    } else if (class_name == vmSymbols::jdk_internal_vm_StackChunk()) {
+      ik = new (loader_data, size, THREAD) InstanceStackChunkKlass(parser);
     } else if (is_class_loader(class_name, parser)) {
       // class loader
       ik = new (loader_data, size, THREAD) InstanceClassLoaderKlass(parser);
@@ -450,7 +452,6 @@ InstanceKlass* InstanceKlass::allocate_instance_klass(const ClassFileParser& par
       ik = new (loader_data, size, THREAD) InstanceKlass(parser);
     }
   } else {
-    // reference
     ik = new (loader_data, size, THREAD) InstanceRefKlass(parser);
   }
 

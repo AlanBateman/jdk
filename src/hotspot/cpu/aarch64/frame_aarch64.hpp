@@ -99,8 +99,11 @@
     entry_frame_call_wrapper_offset                  = -8,
 
     // we don't need a save area
-    arg_reg_save_area_bytes                          =  0
+    arg_reg_save_area_bytes                          =  0,
 
+    metadata_words = sender_sp_offset, // size, in words, of frame metadata (e.g. pc and link)
+    frame_alignment = 16, // in bytes
+    align_wiggle = 1 // size, in words, of maximum shift in frame position due to alignment
   };
 
   intptr_t ptr_at(int offset) const {
@@ -122,7 +125,7 @@
   // original sp we use that convention.
 
   intptr_t*     _unextended_sp;
-  void adjust_unextended_sp();
+  void adjust_unextended_sp() NOT_DEBUG_RETURN;
 
   // true means _sp value is correct and we can use it to get the sender's sp
   // of the compiled frame, otherwise, _sp value may be invalid and we can use
@@ -138,6 +141,8 @@
   static void verify_deopt_original_pc(   CompiledMethod* nm, intptr_t* unextended_sp);
 #endif
 
+  const ImmutableOopMap* get_oop_map() const;
+
  public:
   // Constructors
 
@@ -145,13 +150,21 @@
 
   frame(intptr_t* sp, intptr_t* unextended_sp, intptr_t* fp, address pc);
 
+  frame(intptr_t* sp, intptr_t* unextended_sp, intptr_t* fp, address pc, CodeBlob* cb);
+
+  frame(intptr_t* sp, intptr_t* unextended_sp, intptr_t* fp, address pc, CodeBlob* cb, const ImmutableOopMap* oop_map, bool on_heap); // used for fast frame construction by continuations
+
   frame(intptr_t* sp, intptr_t* fp);
 
   void init(intptr_t* sp, intptr_t* fp, address pc);
+  void setup(address pc);
 
   // accessors for the instance variables
   // Note: not necessarily the real 'frame pointer' (see real_fp)
   intptr_t*   fp() const { return _fp; }
+  void set_fp(intptr_t* newfp) { _fp = newfp; }
+  int offset_fp() const { return (int)(intptr_t)_fp; }
+  void set_offset_fp(int value) { _fp = (intptr_t*)(intptr_t)value; }
 
   inline address* sender_pc_addr() const;
   inline address  sender_pc_maybe_signed() const;
@@ -159,8 +172,8 @@
   // expression stack tos if we are nested in a java call
   intptr_t* interpreter_frame_last_sp() const;
 
-  // helper to update a map with callee-saved RBP
-  static void update_map_with_saved_link(RegisterMap* map, intptr_t** link_addr);
+  template <typename RegisterMapT>
+  static void update_map_with_saved_link(RegisterMapT* map, intptr_t** link_addr);
 
   // deoptimization support
   void interpreter_frame_set_last_sp(intptr_t* sp);
@@ -168,7 +181,7 @@
   static jint interpreter_frame_expression_stack_direction() { return -1; }
 
   // returns the sending frame, without applying any barriers
-  frame sender_raw(RegisterMap* map) const;
+  inline frame sender_raw(RegisterMap* map) const;
 
   void set_sp_is_trusted() { _sp_is_trusted = true; }
 

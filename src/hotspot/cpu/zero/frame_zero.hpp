@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
  * Copyright 2007, 2008, 2009, 2010 Red Hat, Inc.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -32,6 +32,8 @@
   enum {
     pc_return_offset = 0
   };
+
+ const ImmutableOopMap* get_oop_map() const;
 
   // Constructor
  public:
@@ -72,5 +74,12 @@
                            int           buflen) const;
 
   static jint interpreter_frame_expression_stack_direction() { return -1; }
+
+  inline address* sender_pc_addr() const;
+
+  inline intptr_t* interpreter_frame_last_sp() const;
+
+  template <typename RegisterMapT>
+  static void update_map_with_saved_link(RegisterMapT* map, intptr_t** link_addr);
 
 #endif // CPU_ZERO_FRAME_ZERO_HPP

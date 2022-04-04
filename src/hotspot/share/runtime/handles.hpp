@@ -73,7 +73,7 @@ class Handle {
  public:
   // Constructors
   Handle()                                       { _handle = NULL; }
-  inline Handle(Thread* thread, oop obj);
+  inline Handle(Thread* thread, oop obj, bool allocNull = false);
 
   // General access
   oop     operator () () const                   { return obj(); }
@@ -100,6 +100,8 @@ class Handle {
   // since duplicates is only valid as long as original handle is alive.
   oop* raw_value() const                         { return _handle; }
   static oop raw_resolve(oop *handle)            { return handle == NULL ? (oop)NULL : *handle; }
+
+  inline void replace(oop obj);
 };
 
 // Specific Handles for different oop types
@@ -112,7 +114,7 @@ class Handle {
    public:                                       \
     /* Constructors */                           \
     type##Handle ()                              : Handle()                 {} \
-    inline type##Handle (Thread* thread, type##Oop obj); \
+    inline type##Handle (Thread* thread, type##Oop obj, bool allocNull = false); \
     \
     /* Operators for ease of use */              \
     type##Oop    operator () () const            { return obj(); } \
@@ -121,6 +123,7 @@ class Handle {
 
 
 DEF_HANDLE(instance         , is_instance_noinline         )
+DEF_HANDLE(stackChunk       , is_stackChunk_noinline       )
 DEF_HANDLE(array            , is_array_noinline            )
 DEF_HANDLE(objArray         , is_objArray_noinline         )
 DEF_HANDLE(typeArray        , is_typeArray_noinline        )

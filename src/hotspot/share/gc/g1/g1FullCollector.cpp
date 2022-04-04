@@ -187,6 +187,8 @@ void G1FullCollector::prepare_collection() {
 }
 
 void G1FullCollector::collect() {
+  G1CollectedHeap::start_codecache_marking_cycle_if_inactive();
+
   phase1_mark_live_objects();
   verify_after_marking();
 
@@ -198,6 +200,8 @@ void G1FullCollector::collect() {
   phase3_adjust_pointers();
 
   phase4_do_compaction();
+
+  CodeCache::finish_marking_cycle();
 }
 
 void G1FullCollector::complete_collection() {
