@@ -137,6 +137,10 @@ oop java_lang_ref_Reference::weak_referent_no_keepalive(oop ref) {
   return ref->obj_field_access<ON_WEAK_OOP_REF | AS_NO_KEEPALIVE>(_referent_offset);
 }
 
+oop java_lang_ref_Reference::weak_referent(oop ref) {
+  return ref->obj_field_access<ON_WEAK_OOP_REF>(_referent_offset);
+}
+
 oop java_lang_ref_Reference::phantom_referent_no_keepalive(oop ref) {
   return ref->obj_field_access<ON_PHANTOM_OOP_REF | AS_NO_KEEPALIVE>(_referent_offset);
 }
@@ -347,7 +351,7 @@ inline int jdk_internal_vm_StackChunk::maxSize(oop ref) {
 inline void jdk_internal_vm_StackChunk::set_maxSize(oop ref, int value) {
 #ifdef ASSERT
   jint old = maxSize(ref);
-  log_develop_trace(jvmcont)("%s max_size: %d -> %d", value >= old ? "add" : "sub", old, value);
+  log_develop_trace(continuations)("%s max_size: %d -> %d", value >= old ? "add" : "sub", old, value);
 #endif
   ref->int_field_put(_maxSize_offset, value);
 }
