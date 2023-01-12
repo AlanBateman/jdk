@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,12 +26,12 @@
  * @bug 8284199
  * @summary Test StructuredTaskScope without --enable-preview
  * @modules jdk.incubator.concurrent
- * @run testng/othervm PreviewFeaturesNotEnabled
+ * @run junit/othervm PreviewFeaturesNotEnabled
  */
 
 import jdk.incubator.concurrent.StructuredTaskScope;
-import org.testng.annotations.Test;
-import static org.testng.Assert.*;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class PreviewFeaturesNotEnabled {
     /**
