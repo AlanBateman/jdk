@@ -419,15 +419,10 @@ Java_sun_nio_ch_Net_connectx0(JNIEnv *env, jclass clazz, jboolean preferIPv6, jo
 
     ssize_t n = (int) sendto(fdval(env, fdo), buf, len, MSG_FASTOPEN, &sa.sa, sa_len);
     if (n >= 0) {
-        if (n < len) {
-            JNU_ThrowIOException(env, "TFO data too large");
-            return IOS_THROWN;
-        }
-        return 1; // connected
+        return n;
     }
     if (errno == EINPROGRESS) {
-        JNU_ThrowIOException(env, "Connection not completed immediately, TFO data lost");
-        return IOS_THROWN;
+        return IOS_UNAVAILABLE;
     }
     return handleSocketError(env, errno);
 
@@ -435,7 +430,7 @@ Java_sun_nio_ch_Net_connectx0(JNIEnv *env, jclass clazz, jboolean preferIPv6, jo
 
     sa_endpoints_t endpoints;
     struct iovec iov;
-    size_t nsent;
+    size_t nsent = 0;
 
 	endpoints.sae_srcif = 0;
 	endpoints.sae_srcaddr = NULL;
@@ -449,16 +444,12 @@ Java_sun_nio_ch_Net_connectx0(JNIEnv *env, jclass clazz, jboolean preferIPv6, jo
     // TBD - what if connectx is interrupted (EINTR), is nsent set?
 
     int n = connectx(fdval(env, fdo), &endpoints, 0, CONNECT_DATA_IDEMPOTENT, &iov, 1, &nsent, NULL);
-    if ((n == 0 || errno == EINPROGRESS) && (nsent < (size_t)len)) {
-        JNU_ThrowIOException(env, "TFO data too large");
-        return IOS_THROWN;
+    if (n == 0 || (errno == EINPROGRESS && nsent > 0)) {
+        return nsent;
     }
-	if (n == 0) {
-	    return 1; // connected
-	}
-	if (errno == EINPROGRESS) {
-	    return IOS_UNAVAILABLE;
-	}
+    if (errno == EINPROGRESS) {
+        return IOS_UNAVAILABLE;
+    }
 	return handleSocketError(env, errno);
 
 #else

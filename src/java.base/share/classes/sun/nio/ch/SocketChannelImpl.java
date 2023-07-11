@@ -287,7 +287,7 @@ class SocketChannelImpl
 
                 // extended socket option handled here
                 if (name.name().equals("TCP_FASTOPEN_CONNECT_DATA")) {
-                    var data = ((ByteBuffer) (Objects.requireNonNull(value))).duplicate();
+                    var data = (ByteBuffer) Objects.requireNonNull(value);
                     if (data.remaining() == 0)
                         throw new IllegalArgumentException("TFO data cannot be 0 bytes");
                     if (isConnected())
@@ -926,21 +926,24 @@ class SocketChannelImpl
         int pos = data.position();
         int lim = data.limit();
         assert (pos <= lim);
-        int size = (pos <= lim ? lim - pos : 0);
+        int rem = (pos <= lim) ? lim - pos : 0;
         int n;
         if (data instanceof DirectBuffer) {
-            n = Net.connectx(family, fd, remote, ((DirectBuffer) data).address(), size);
+            n = Net.connectx(family, fd, remote, ((DirectBuffer) data).address() + pos, rem);
         } else {
-            ByteBuffer bb = Util.getTemporaryDirectBuffer(size);
+            ByteBuffer bb = Util.getTemporaryDirectBuffer(rem);
             try {
                 bb.put(data);
                 bb.flip();
-                n = Net.connectx(family, fd, remote, ((DirectBuffer) bb).address(), size);
+                n = Net.connectx(family, fd, remote, ((DirectBuffer) bb).address(), rem);
             } finally {
                 Util.offerFirstTemporaryDirectBuffer(bb);
             }
         }
-        return n;
+        if (n > 0) {
+            data.position(pos + n);
+        }
+        return (n >= 0) ? /*connected*/ 1 : 0;
     }
 
     @Override
