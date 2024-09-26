@@ -36,6 +36,7 @@
 class AdapterHandlerEntry;
 class AdapterFingerPrint;
 class vframeStream;
+class ObjectWaiter;
 
 // Runtime is the base class for various runtime interfaces
 // (InterpreterRuntime, CompilerRuntime, etc.). It provides
@@ -84,7 +85,9 @@ class SharedRuntime: AllStatic {
             id == SharedStubId::throw_StackOverflowError_id ||
             id == SharedStubId::throw_delayed_StackOverflowError_id);
   }
-#endif
+#endif   
+    
+  static int _object_wait_resume_offset;
 
   // cont_doYieldStub is not yet folded into the general model for
   // shared stub/blob handling. It is actually a specially generated
@@ -238,6 +241,11 @@ class SharedRuntime: AllStatic {
   static address continuation_for_implicit_exception(JavaThread* current,
                                                      address faulting_pc,
                                                      ImplicitExceptionKind exception_kind);
+
+  static int object_wait_resume_offset() { return _object_wait_resume_offset; }
+  static void set_object_wait_resume_offset(int offset) {
+    _object_wait_resume_offset = offset;
+  }
 
   // Post-slow-path-allocation, pre-initializing-stores step for
   // implementing e.g. ReduceInitialCardMarks
@@ -511,6 +519,10 @@ class SharedRuntime: AllStatic {
   // otherwise be preserved.  On Intel this includes the return address.
   // On PowerPC it includes the 4 words holding the old TOC & LR glue.
   static uint in_preserve_stack_slots();
+
+  static VMReg thread_register();
+
+  static void continuation_enter_cleanup(MacroAssembler* masm);
 
   // Is vector's size (in bytes) bigger than a size saved by default?
   // For example, on x86 16 bytes XMM registers are saved by default.
