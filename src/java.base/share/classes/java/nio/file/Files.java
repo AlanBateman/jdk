@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -76,7 +76,6 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import jdk.internal.util.ArraysSupport;
-import sun.nio.ch.FileChannelImpl;
 import sun.nio.cs.UTF_8;
 import sun.nio.fs.AbstractFileSystemProvider;
 
@@ -2969,8 +2968,6 @@ public final class Files {
     public static byte[] readAllBytes(Path path) throws IOException {
         try (SeekableByteChannel sbc = Files.newByteChannel(path);
              InputStream in = Channels.newInputStream(sbc)) {
-            if (sbc instanceof FileChannelImpl)
-                ((FileChannelImpl) sbc).setUninterruptible();
             long size = sbc.size();
             if (size > (long) Integer.MAX_VALUE)
                 throw new OutOfMemoryError("Required array size too large");

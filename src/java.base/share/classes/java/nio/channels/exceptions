@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2000, 2009, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2000, 2025, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -43,8 +43,10 @@ gen ClosedChannelException "
 
 gen FileLockInterruptionException "
  * Checked exception received by a thread when another thread interrupts it
- * while it is waiting to acquire a file lock.  Before this exception is thrown
- * the interrupt status of the previously-blocked thread will have been set." \
+ * while it is waiting to acquire a file lock, and {@linkplain
+ * Thread#interrupt() interrupt} closes the channel. Before this
+ * exception is thrown the channel will have been closed and the interrupt
+ * status of the previously-waiting thread will have been set." \
  7104080643653532383L
 
 
@@ -61,7 +63,8 @@ SUPER=AsynchronousCloseException
 
 gen ClosedByInterruptException "
  * Checked exception received by a thread when another thread interrupts it
- * while it is blocked in an I/O operation upon a channel.  Before this
+ * while it is blocked in an I/O operation upon a channel, and {@linkplain
+ * Thread#interrupt() interrupt} closes the channel. Before this
  * exception is thrown the channel will have been closed and the interrupt
  * status of the previously-blocked thread will have been set." \
  -4488191543534286750L

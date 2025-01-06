@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -109,7 +109,8 @@ class UnixChannelFactory {
     static FileChannel newFileChannel(int dfd,
                                       UnixPath path,
                                       Set<? extends OpenOption> options,
-                                      int mode)
+                                      int mode,
+                                      boolean allowCloseOnInterrupt)
         throws UnixException
     {
         Flags flags = Flags.toFlags(options);
@@ -131,7 +132,7 @@ class UnixChannelFactory {
 
         FileDescriptor fdObj = open(dfd, path, flags, mode);
         return FileChannelImpl.open(fdObj, path.toString(), flags.read, flags.write,
-                (flags.sync || flags.dsync), flags.direct, null);
+                (flags.sync || flags.dsync), flags.direct, allowCloseOnInterrupt);
     }
 
     /**
@@ -139,10 +140,11 @@ class UnixChannelFactory {
      */
     static FileChannel newFileChannel(UnixPath path,
                                       Set<? extends OpenOption> options,
-                                      int mode)
+                                      int mode,
+                                      boolean allowCloseOnInterrupt)
         throws UnixException
     {
-        return newFileChannel(-1, path, options, mode);
+        return newFileChannel(-1, path, options, mode, allowCloseOnInterrupt);
     }
 
     /**

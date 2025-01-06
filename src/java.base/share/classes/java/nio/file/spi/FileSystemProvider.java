@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -67,8 +67,6 @@ import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-
-import sun.nio.ch.FileChannelImpl;
 
 /**
  * Service-provider class for file systems. The methods defined by the {@link
@@ -369,9 +367,6 @@ public abstract class FileSystemProvider {
                 throw new UnsupportedOperationException("'" + opt + "' not allowed");
         }
         ReadableByteChannel rbc = Files.newByteChannel(path, options);
-        if (rbc instanceof FileChannelImpl) {
-            ((FileChannelImpl) rbc).setUninterruptible();
-        }
         return Channels.newInputStream(rbc);
     }
 
@@ -424,9 +419,6 @@ public abstract class FileSystemProvider {
             opts.add(StandardOpenOption.WRITE);
         }
         WritableByteChannel wbc = newByteChannel(path, opts);
-        if (wbc instanceof FileChannelImpl) {
-            ((FileChannelImpl) wbc).setUninterruptible();
-        }
         return Channels.newOutputStream(wbc);
     }
 

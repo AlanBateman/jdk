@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -71,6 +71,10 @@ public class FileChannelImpl
     private static final JavaIOFileDescriptorAccess fdAccess =
         SharedSecrets.getJavaIOFileDescriptorAccess();
 
+    // For backward compatibility
+    private static final boolean CLOSE_ON_INTERRUPT =
+        Boolean.getBoolean("jdk.nio.channels.FileChannel.closeOnInterrupt");
+
     // Used to make native read and write calls
     private static final FileDispatcher nd = new FileDispatcherImpl();
 
@@ -86,6 +90,9 @@ public class FileChannelImpl
     private final boolean readable;
     private final boolean sync;  // O_SYNC or O_DSYNC
 
+    // True if interrupt closes channel
+    private final boolean interruptible;
+
     // Required to prevent finalization of creating stream (immutable)
     private final Closeable parent;
 
@@ -98,9 +105,6 @@ public class FileChannelImpl
 
     // Lock for operations involving position and size
     private final Object positionLock = new Object();
-
-    // blocking operations are not interruptible
-    private volatile boolean uninterruptible;
 
     // DirectIO flag
     private final boolean direct;
@@ -130,6 +134,7 @@ public class FileChannelImpl
 
     private FileChannelImpl(FileDescriptor fd, String path, boolean readable,
                             boolean writable, boolean sync, boolean direct,
+                            boolean interruptible,
                             Closeable parent)
     {
         this.fd = fd;
@@ -138,6 +143,7 @@ public class FileChannelImpl
         this.writable = writable;
         this.sync = sync;
         this.direct = direct;
+        this.interruptible = interruptible;
         this.parent = parent;
         if (direct) {
             assert path != null;
@@ -159,9 +165,21 @@ public class FileChannelImpl
     // and RandomAccessFile::getChannel
     public static FileChannel open(FileDescriptor fd, String path,
                                    boolean readable, boolean writable,
-                                   boolean sync, boolean direct, Closeable parent)
+                                   boolean sync, boolean direct,
+                                   Closeable parent)
     {
-        return new FileChannelImpl(fd, path, readable, writable, sync, direct, parent);
+        boolean interruptible = CLOSE_ON_INTERRUPT;
+        return new FileChannelImpl(fd, path, readable, writable, sync, direct, interruptible, parent);
+    }
+
+    // Used by UnixChannelFactory/WindowsChannelFactory
+    public static FileChannel open(FileDescriptor fd, String path,
+                                   boolean readable, boolean writable,
+                                   boolean sync, boolean direct,
+                                   boolean allowCloseOnInterrupt)
+    {
+        boolean interruptible = allowCloseOnInterrupt ? CLOSE_ON_INTERRUPT : false;
+        return new FileChannelImpl(fd, path, readable, writable, sync, direct, interruptible, null);
     }
 
     private void ensureOpen() throws IOException {
@@ -169,16 +187,12 @@ public class FileChannelImpl
             throw new ClosedChannelException();
     }
 
-    public void setUninterruptible() {
-        uninterruptible = true;
-    }
-
     private void beginBlocking() {
-        if (!uninterruptible) begin();
+        if (interruptible) begin();
     }
 
     private void endBlocking(boolean completed) throws AsynchronousCloseException {
-        if (!uninterruptible) end(completed);
+        if (interruptible) end(completed);
     }
 
     // -- Standard channel operations --
@@ -712,7 +726,7 @@ public class FileChannelImpl
         if (cce instanceof ClosedByInterruptException e) {
             assert Thread.currentThread().isInterrupted();
             cbie = e;
-        } else if (!uninterruptible && Thread.currentThread().isInterrupted()) {
+        } else if (interruptible && Thread.currentThread().isInterrupted()) {
             cbie = new ClosedByInterruptException();
         }
         if (cbie != null) {
@@ -1449,9 +1463,10 @@ public class FileChannelImpl
 
     @Override
     public MappedByteBuffer map(MapMode mode, long position, long size) throws IOException {
+        Objects.requireNonNull(mode,"Mode is null");
         if (size > Integer.MAX_VALUE)
             throw new IllegalArgumentException("Size exceeds Integer.MAX_VALUE");
-        boolean isSync = isSync(Objects.requireNonNull(mode, "Mode is null"));
+        boolean isSync = isSync(mode);
         int prot = toProt(mode);
         Unmapper unmapper = mapInternal(mode, position, size, prot, isSync);
         if (unmapper == null) {
@@ -1475,25 +1490,17 @@ public class FileChannelImpl
     }
 
     @Override
-    public MemorySegment map(MapMode mode, long offset, long size, Arena arena)
+    public MemorySegment map(MapMode mode, long position, long size, Arena arena)
         throws IOException
     {
         Objects.requireNonNull(mode,"Mode is null");
         Objects.requireNonNull(arena, "Arena is null");
         MemorySessionImpl sessionImpl = MemorySessionImpl.toMemorySession(arena);
         sessionImpl.checkValidState();
-        if (offset < 0)
-            throw new IllegalArgumentException("Requested bytes offset must be >= 0.");
-        if (size < 0)
-            throw new IllegalArgumentException("Requested bytes size must be >= 0.");
-
         boolean isSync = isSync(mode);
         int prot = toProt(mode);
-        Unmapper unmapper = mapInternal(mode, offset, size, prot, isSync);
-        boolean readOnly = false;
-        if (mode == MapMode.READ_ONLY) {
-            readOnly = true;
-        }
+        Unmapper unmapper = mapInternal(mode, position, size, prot, isSync);
+        boolean readOnly = (mode == MapMode.READ_ONLY);
         return SegmentFactories.mapSegment(size, unmapper, readOnly, sessionImpl);
     }
 
@@ -1501,13 +1508,12 @@ public class FileChannelImpl
         throws IOException
     {
         ensureOpen();
-        if (mode == null)
-            throw new NullPointerException("Mode is null");
+        assert mode != null;
         if (position < 0L)
             throw new IllegalArgumentException("Negative position");
         if (size < 0L)
             throw new IllegalArgumentException("Negative size");
-        if (position + size < 0)
+        if (position + size < 0L)
             throw new IllegalArgumentException("Position + size overflow");
 
         checkMode(mode, prot, isSync);

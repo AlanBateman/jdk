@@ -26,7 +26,6 @@
 package sun.nio.fs;
 
 import java.io.IOException;
-import java.io.FilePermission;
 import java.net.URI;
 import java.nio.channels.AsynchronousFileChannel;
 import java.nio.channels.FileChannel;
@@ -205,10 +204,9 @@ public abstract class UnixFileSystemProvider
         throws IOException
     {
         UnixPath file = UnixPath.toUnixPath(obj);
-        int mode = UnixFileModeAttribute
-            .toUnixMode(UnixFileModeAttribute.ALL_READWRITE, attrs);
+        int mode = UnixFileModeAttribute.toUnixMode(UnixFileModeAttribute.ALL_READWRITE, attrs);
         try {
-            return UnixChannelFactory.newFileChannel(file, options, mode);
+            return UnixChannelFactory.newFileChannel(file, options, mode, true);
         } catch (UnixException x) {
             x.rethrowAsIOException(file);
             return null;
@@ -241,7 +239,14 @@ public abstract class UnixFileSystemProvider
                                               FileAttribute<?>... attrs)
          throws IOException
     {
-        return newFileChannel(obj, options, attrs);
+        UnixPath file = UnixPath.toUnixPath(obj);
+        int mode = UnixFileModeAttribute.toUnixMode(UnixFileModeAttribute.ALL_READWRITE, attrs);
+        try {
+            return UnixChannelFactory.newFileChannel(file, options, mode, false);
+        } catch (UnixException x) {
+            x.rethrowAsIOException(file);
+            return null;
+        }
     }
 
     @Override

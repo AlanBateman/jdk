@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -142,7 +142,8 @@ class WindowsChannelFactory {
      */
     static FileChannel newFileChannel(String pathForWindows,
                                       Set<? extends OpenOption> options,
-                                      long pSecurityDescriptor)
+                                      long pSecurityDescriptor,
+                                      boolean allowCloseOnInterrupt)
         throws WindowsException
     {
         Flags flags = Flags.toFlags(options);
@@ -164,7 +165,7 @@ class WindowsChannelFactory {
 
         FileDescriptor fdObj = open(pathForWindows, flags, pSecurityDescriptor);
         return FileChannelImpl.open(fdObj, pathForWindows, flags.read, flags.write,
-                (flags.sync || flags.dsync), flags.direct, null);
+                (flags.sync || flags.dsync), flags.direct, allowCloseOnInterrupt);
     }
 
     /**

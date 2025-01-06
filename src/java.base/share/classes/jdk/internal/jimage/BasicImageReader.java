@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,14 +27,11 @@ package jdk.internal.jimage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Objects;
@@ -82,9 +79,8 @@ public class BasicImageReader implements AutoCloseable {
     private final ImageStringsReader stringsReader;
     private final Decompressor decompressor;
 
-    @SuppressWarnings({ "removal", "this-escape" })
-    protected BasicImageReader(Path path, ByteOrder byteOrder)
-            throws IOException {
+    @SuppressWarnings({ "this-escape" })
+    protected BasicImageReader(Path path, ByteOrder byteOrder) throws IOException {
         this.imagePath = Objects.requireNonNull(path);
         this.byteOrder = Objects.requireNonNull(byteOrder);
         this.name = this.imagePath.toString();
@@ -103,30 +99,7 @@ public class BasicImageReader implements AutoCloseable {
         if (map != null && MAP_ALL) {
             channel = null;
         } else {
-            channel = FileChannel.open(imagePath, StandardOpenOption.READ);
-            // No lambdas during bootstrap
-            AccessController.doPrivileged(new PrivilegedAction<Void>() {
-                @Override
-                public Void run() {
-                    if (BasicImageReader.class.getClassLoader() == null) {
-                        try {
-                            Class<?> fileChannelImpl =
-                                Class.forName("sun.nio.ch.FileChannelImpl");
-                            Method setUninterruptible =
-                                    fileChannelImpl.getMethod("setUninterruptible");
-                            setUninterruptible.invoke(channel);
-                        } catch (ClassNotFoundException |
-                                 NoSuchMethodException |
-                                 IllegalAccessException |
-                                 InvocationTargetException ex) {
-                            // fall thru - will only happen on JDK-8 systems where this code
-                            // is only used by tools using jrt-fs (non-critical.)
-                        }
-                    }
-
-                    return null;
-                }
-            });
+            channel = FileChannel.open(imagePath);
         }
 
         // If no memory map yet and 64 bit jvm then memory map entire file

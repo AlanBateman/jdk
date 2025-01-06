@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -40,7 +40,6 @@ import java.nio.file.spi.FileSystemProvider;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Collections;
-import jdk.internal.javac.PreviewFeature;
 
 /**
  * A channel for reading, writing, mapping, and manipulating a file.
@@ -87,15 +86,41 @@ import jdk.internal.javac.PreviewFeature;
  *
  * </ul>
  *
- * <p> File channels are safe for use by multiple concurrent threads.  The
- * {@link Channel#close close} method may be invoked at any time, as specified
- * by the {@link Channel} interface.  Only one operation that involves the
- * channel's position or can change its file's size may be in progress at any
- * given time; attempts to initiate a second such operation while the first is
- * still in progress will block until the first operation completes.  Other
- * operations, in particular those that take an explicit position, may proceed
- * concurrently; whether they in fact do so is dependent upon the underlying
- * implementation and is therefore unspecified.
+ * <p> File channels are safe for use by multiple concurrent threads. The
+ * {@link Channel#close close} method may be invoked at any time. {@code
+ * FileChannel} implements {@link InterruptibleChannel} but deviates from
+ * the specification of the interface as follows:
+ *
+ * <ul>
+ *
+ *    <li><p> If a thread is blocked in an I/O operation on a file channel, and
+ *    another thread invokes the channel's {@link AbstractInterruptibleChannel#close
+ *    close} method, then it is implementation specific as to whether the blocked
+ *    thread wakes up immediately or the thread invoking the {@code close} method
+ *    blocks until the I/O operation completes. </p></li>
+ *
+ *    <li><p> If a thread is blocked in an I/O operation on a file channel is
+ *    {@linkplain Thread#interrupt() interrupted} then it sets the blocked
+ *    thread's interrupt status but does not close the channel. Similarly, if
+ *    a thread's interrupt status is already set and it invokes a blocking I/O
+ *    operation on a file channel then it does not close the channel.
+ *    An implementation may provide a means to change this behavior so that
+ *    interrupting a thread blocked in an I/O operation on the channel sets the
+ *    blocked thread's interrupt status, closes the channel, and causes the blocked
+ *    thread to throw {@link ClosedByInterruptException}. If a thread's interrupt
+ *    status is already set and it invokes a blocking I/O operation upon the channel
+ *    then the channel will be closed and the thread will throw {@code
+ *    ClosedByInterruptException}; its interrupt status will remain set. </p></li>
+ *
+ * </ul>
+ *
+ * <p> Only one operation that involves the file channel's position or can
+ * change its file's size may be in progress at any given time; attempts to
+ * initiate a second such operation while the first is still in progress will
+ * block until the first operation completes.  Other operations, in particular
+ * those that take an explicit position, may proceed concurrently; whether they
+ * in fact do so is dependent upon the underlying implementation and is therefore
+ * unspecified.
  *
  * <p> The view of a file provided by an instance of this class is guaranteed
  * to be consistent with other views of the same file provided by other
@@ -151,6 +176,14 @@ import jdk.internal.javac.PreviewFeature;
  * {@linkplain #write(ByteBuffer,long) write at a given position} is also
  * system-dependent.
  *
+ * @implNote In the JDK Reference Implementation, the system property
+ * {@code jdk.nio.channels.FileChannel.closeOnInterrupt} may be set to the
+ * value "{@code true}" to arrange for {@link Thread#interrupt()} to close a
+ * file channel when invoked on a thread that is blocked in an I/O operation on
+ * the channel. Additionally, if a thread's interrupt status is already set and
+ * it invokes a blocking I/O operation upon a file channel then the channel
+ * will be closed.
+ *
  * @see java.io.FileInputStream#getChannel()
  * @see java.io.FileOutputStream#getChannel()
  * @see java.io.RandomAccessFile#getChannel()
@@ -169,6 +202,23 @@ public abstract class FileChannel
      * Initializes a new instance of this class.
      */
     protected FileChannel() { }
+
+    /**
+     * Closes this channel.
+     *
+     * <p> This method is invoked by the {@link #close close} method in order
+     * to perform the actual work of closing the channel.  This method is only
+     * invoked if the channel has not yet been closed, and it is never invoked
+     * more than once.
+     *
+     * <p> An implementation may arrange for any other thread that is blocked in
+     * an I/O operation upon this channel to return immediately, either by throwing
+     * an exception or by returning normally, or this method may block until all
+     * outstanding I/O operations on the channel have {@linkplain  #end(boolean)
+     * ended}.
+     */
+    @Override
+    protected abstract void implCloseChannel() throws IOException;
 
     /**
      * Opens or creates a file, returning a file channel to access the file.
@@ -365,7 +415,10 @@ public abstract class FileChannel
      *
      * @throws  ClosedChannelException      {@inheritDoc}
      * @throws  AsynchronousCloseException  {@inheritDoc}
-     * @throws  ClosedByInterruptException  {@inheritDoc}
+     * @throws  ClosedByInterruptException
+     *          If another thread {@linkplain Thread#interrupt() interrupts} the
+     *          current thread while the read operation is in progress and the
+     *          implementation closes the channel
      * @throws  NonReadableChannelException {@inheritDoc}
      */
     public abstract int read(ByteBuffer dst) throws IOException;
@@ -381,7 +434,9 @@ public abstract class FileChannel
      *
      * @throws  ClosedChannelException      {@inheritDoc}
      * @throws  AsynchronousCloseException  {@inheritDoc}
-     * @throws  ClosedByInterruptException  {@inheritDoc}
+     *          If another thread {@linkplain Thread#interrupt() interrupts} the
+     *          current thread while the read operation is in progress and the
+     *          implementation closes the channel
      * @throws  NonReadableChannelException {@inheritDoc}
      */
     public abstract long read(ByteBuffer[] dsts, int offset, int length)
@@ -397,7 +452,10 @@ public abstract class FileChannel
      *
      * @throws  ClosedChannelException      {@inheritDoc}
      * @throws  AsynchronousCloseException  {@inheritDoc}
-     * @throws  ClosedByInterruptException  {@inheritDoc}
+     * @throws  ClosedByInterruptException
+     *          If another thread {@linkplain Thread#interrupt() interrupts} the
+     *          current thread while the read operation is in progress and the
+     *          implementation closes the channel
      * @throws  NonReadableChannelException {@inheritDoc}
      */
     public final long read(ByteBuffer[] dsts) throws IOException {
@@ -417,7 +475,10 @@ public abstract class FileChannel
      *
      * @throws  ClosedChannelException      {@inheritDoc}
      * @throws  AsynchronousCloseException  {@inheritDoc}
-     * @throws  ClosedByInterruptException  {@inheritDoc}
+     * @throws  ClosedByInterruptException
+     *          If another thread {@linkplain Thread#interrupt() interrupts} the
+     *          current thread while the write operation is in progress and the
+     *          implementation closes the channel
      * @throws  NonWritableChannelException {@inheritDoc}
      */
     public abstract int write(ByteBuffer src) throws IOException;
@@ -436,7 +497,10 @@ public abstract class FileChannel
      *
      * @throws  ClosedChannelException      {@inheritDoc}
      * @throws  AsynchronousCloseException  {@inheritDoc}
-     * @throws  ClosedByInterruptException  {@inheritDoc}
+     * @throws  ClosedByInterruptException
+     *          If another thread {@linkplain Thread#interrupt() interrupts} the
+     *          current thread while the write operation is in progress and the
+     *          implementation closes the channel
      * @throws  NonWritableChannelException {@inheritDoc}
      */
     public abstract long write(ByteBuffer[] srcs, int offset, int length)
@@ -455,7 +519,10 @@ public abstract class FileChannel
      *
      * @throws  ClosedChannelException      {@inheritDoc}
      * @throws  AsynchronousCloseException  {@inheritDoc}
-     * @throws  ClosedByInterruptException  {@inheritDoc}
+     * @throws  ClosedByInterruptException
+     *          If another thread {@linkplain Thread#interrupt() interrupts} the
+     *          current thread while the write operation is in progress and the
+     *          implementation closes the channel
      * @throws  NonWritableChannelException {@inheritDoc}
      */
     public final long write(ByteBuffer[] srcs) throws IOException {
@@ -660,10 +727,9 @@ public abstract class FileChannel
      *          while the transfer is in progress
      *
      * @throws  ClosedByInterruptException
-     *          If another thread interrupts the current thread while the
-     *          transfer is in progress, thereby closing both channels and
-     *          setting the current thread's interrupt status
-     *
+     *          If another thread {@linkplain Thread#interrupt() interrupts} the
+     *          current thread while the read operation is in progress and the
+     *          implementation closes both channels
      * @throws  IOException
      *          If some other I/O error occurs
      */
@@ -730,9 +796,9 @@ public abstract class FileChannel
      *          while the transfer is in progress
      *
      * @throws  ClosedByInterruptException
-     *          If another thread interrupts the current thread while the
-     *          transfer is in progress, thereby closing both channels and
-     *          setting the current thread's interrupt status
+     *          If another thread {@linkplain Thread#interrupt() interrupts} the
+     *          current thread while the read operation is in progress and the
+     *          implementation closes both channels
      *
      * @throws  IOException
      *          If some other I/O error occurs
@@ -973,6 +1039,9 @@ public abstract class FileChannel
      *         map mode requiring write access, but this channel was not
      *         opened for both reading and writing
      *
+     * @throws ClosedChannelException
+     *         If this channel is closed
+     *
      * @throws IllegalArgumentException
      *         If the preconditions on the parameters do not hold
      *
@@ -989,16 +1058,16 @@ public abstract class FileChannel
         throws IOException;
 
     /**
-     * Maps a region of this channel's file into a new mapped memory segment,
-     * with the given offset, size and arena.
+     * Maps a region of this channel's file into a new mapped memory segment.
      * The {@linkplain MemorySegment#address() address} of the returned memory
      * segment is the starting address of the mapped off-heap region backing
      * the segment.
-     * <p>
-     * The lifetime of the returned segment is controlled by the provided arena.
-     * For instance, if the provided arena is a closeable arena,
-     * the returned segment will be unmapped when the provided closeable arena
-     * is {@linkplain Arena#close() closed}.
+     *
+     * <p> The lifetime of the returned segment is controlled by the specified
+     * arena. For instance, if the specified arena is a closeable arena, the
+     * returned segment will be unmapped when the provided closeable arena is
+     * {@linkplain Arena#close() closed}.
+     *
      * <p> If the specified mapping mode is
      * {@linkplain FileChannel.MapMode#READ_ONLY READ_ONLY}, the resulting
      * segment will be read-only (see {@link MemorySegment#isReadOnly()}).
@@ -1031,13 +1100,13 @@ public abstract class FileChannel
      *          the mapping mode might affect the behavior of the returned
      *          memory mapped segment (see {@link MemorySegment#force()})
      *
-     * @param   offset
-     *          The offset (expressed in bytes) within the file at which the
-     *          mapped segment is to start
+     * @param   position
+     *          The position within the file at which the mapped region
+     *          is to start; must be non-negative
      *
      * @param   size
-     *          The size (in bytes) of the mapped memory backing the memory
-     *          segment
+     *          The size (in bytes) of the region to be mapped; must be
+     *          non-negative
      *
      * @param   arena
      *          The segment arena
@@ -1045,11 +1114,11 @@ public abstract class FileChannel
      * @return  A new mapped memory segment
      *
      * @throws  IllegalArgumentException
-     *          If {@code offset < 0}, {@code size < 0} or
-     *          {@code offset + size} overflows the range of {@code long}
+     *          If the preconditions of the {@code position} and {@code size}
+     *          do not hold
      *
      * @throws  IllegalStateException
-     *          If {@code arena.isAlive() == false}
+     *          If the arena is not {@linkplain MemorySegment.Scope#isAlive() alive}
      *
      * @throws  WrongThreadException
      *          If {@code arena} is a confined scoped arena, and this method is called
@@ -1066,6 +1135,9 @@ public abstract class FileChannel
      *          map mode requiring write access, but this channel was not
      *          opened for both reading and writing
      *
+     * @throws  ClosedChannelException
+     *          If this channel is closed
+     *
      * @throws  IOException
      *          If some other I/O error occurs
      *
@@ -1074,7 +1146,7 @@ public abstract class FileChannel
      *
      * @since   22
      */
-    public MemorySegment map(MapMode mode, long offset, long size, Arena arena)
+    public MemorySegment map(MapMode mode, long position, long size, Arena arena)
         throws IOException
     {
         throw new UnsupportedOperationException();
@@ -1093,11 +1165,9 @@ public abstract class FileChannel
      * this method then an {@link AsynchronousCloseException} will be thrown.
      *
      * <p> If the invoking thread is interrupted while waiting to acquire the
-     * lock then its interrupt status will be set and a {@link
-     * FileLockInterruptionException} will be thrown.  If the invoker's
-     * interrupt status is set when this method is invoked then that exception
-     * will be thrown immediately; the thread's interrupt status will not be
-     * changed.
+     * lock then its interrupt status will be set. The implementation may
+     * additionally arrange for the channel to be closed and the thread to
+     * receive a {@link FileLockInterruptionException}.
      *
      * <p> The region specified by the {@code position} and {@code size}
      * parameters need not be contained within, or even overlap, the actual
@@ -1153,7 +1223,7 @@ public abstract class FileChannel
      *
      * @throws  FileLockInterruptionException
      *          If the invoking thread is interrupted while blocked in this
-     *          method
+     *          method and the implementation arranges to close the channel
      *
      * @throws  OverlappingFileLockException
      *          If a lock that overlaps the requested region is already held by
@@ -1201,7 +1271,7 @@ public abstract class FileChannel
      *
      * @throws  FileLockInterruptionException
      *          If the invoking thread is interrupted while blocked in this
-     *          method
+     *          method and the implementation arranges to close the channel
      *
      * @throws  OverlappingFileLockException
      *          If a lock that overlaps the requested region is already held by

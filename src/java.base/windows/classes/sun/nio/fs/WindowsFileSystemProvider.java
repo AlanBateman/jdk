@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -113,7 +113,8 @@ class WindowsFileSystemProvider
             return WindowsChannelFactory
                 .newFileChannel(file.getPathForWin32Calls(),
                                 options,
-                                sd.address());
+                                sd.address(),
+                                /*allowCloseOnInterrupt*/ true);
         } catch (WindowsException x) {
             x.rethrowAsIOException(file);
             return null;
@@ -226,7 +227,8 @@ class WindowsFileSystemProvider
             return WindowsChannelFactory
                 .newFileChannel(file.getPathForWin32Calls(),
                                 options,
-                                sd.address());
+                                sd.address(),
+                                /*allowCloseOnInterrupt*/ false);
         } catch (WindowsException x) {
             x.rethrowAsIOException(file);
             return null;  // keep compiler happy
@@ -321,7 +323,8 @@ class WindowsFileSystemProvider
             FileChannel fc = WindowsChannelFactory
                 .newFileChannel(file.getPathForWin32Calls(),
                                 opts,
-                                0L);
+                                0L,
+                                /*allowCloseOnInterrupt*/ false);
             fc.close();
         } catch (WindowsException exc) {
             try {
