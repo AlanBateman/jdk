@@ -22,7 +22,6 @@
  *
  */
 
-#include "precompiled.hpp"
 #include "classfile/javaClasses.inline.hpp"
 #include "classfile/symbolTable.hpp"
 #include "classfile/systemDictionary.hpp"
@@ -37,6 +36,7 @@
 #include "gc/shared/collectedHeap.hpp"
 #include "gc/shared/memAllocator.hpp"
 #include "interpreter/bytecode.hpp"
+#include "interpreter/bytecode.inline.hpp"
 #include "interpreter/bytecodeStream.hpp"
 #include "interpreter/interpreter.hpp"
 #include "interpreter/oopMapCache.hpp"
@@ -320,7 +320,7 @@ static void print_objects(JavaThread* deoptee_thread,
 
     st.print("     object <" INTPTR_FORMAT "> of type ", p2i(sv->value()()));
     k->print_value_on(&st);
-    st.print_cr(" allocated (" SIZE_FORMAT " bytes)", obj->size() * HeapWordSize);
+    st.print_cr(" allocated (%zu bytes)", obj->size() * HeapWordSize);
 
     if (Verbose && k != nullptr) {
       k->oop_print_on(obj(), &st);
@@ -642,11 +642,12 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
   bool caller_was_method_handle = false;
   if (deopt_sender.is_interpreted_frame()) {
     methodHandle method(current, deopt_sender.interpreter_frame_method());
-    Bytecode_invoke cur = Bytecode_invoke_check(method, deopt_sender.interpreter_frame_bci());
-    if (cur.is_invokedynamic() || cur.is_invokehandle()) {
-      // Method handle invokes may involve fairly arbitrary chains of
-      // calls so it's impossible to know how much actual space the
-      // caller has for locals.
+    Bytecode_invoke cur(method, deopt_sender.interpreter_frame_bci());
+    if (cur.has_member_arg()) {
+      // This should cover all real-world cases.  One exception is a pathological chain of
+      // MH.linkToXXX() linker calls, which only trusted code could do anyway.  To handle that case, we
+      // would need to get the size from the resolved method entry.  Another exception would
+      // be an invokedynamic with an adapter that is really a MethodHandle linker.
       caller_was_method_handle = true;
     }
   }
@@ -749,9 +750,14 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
   }
 #endif
 
+  int caller_actual_parameters = -1; // value not used except for interpreted frames, see below
+  if (deopt_sender.is_interpreted_frame()) {
+    caller_actual_parameters = callee_parameters + (caller_was_method_handle ? 1 : 0);
+  }
+
   UnrollBlock* info = new UnrollBlock(array->frame_size() * BytesPerWord,
                                       caller_adjustment * BytesPerWord,
-                                      caller_was_method_handle ? 0 : callee_parameters,
+                                      caller_actual_parameters,
                                       number_of_frames,
                                       frame_sizes,
                                       frame_pcs,
@@ -940,7 +946,7 @@ JRT_LEAF(BasicType, Deoptimization::unpack_frames(JavaThread* thread, int exec_m
       if (Bytecodes::is_invoke(cur_code)) {
         Bytecode_invoke invoke(mh, iframe->interpreter_frame_bci());
         cur_invoke_parameter_size = invoke.size_of_parameters();
-        if (i != 0 && !invoke.is_invokedynamic() && MethodHandles::has_member_arg(invoke.klass(), invoke.name())) {
+        if (i != 0 && invoke.has_member_arg()) {
           callee_size_of_parameters++;
         }
       }
@@ -2718,6 +2724,7 @@ const char* Deoptimization::_trap_reason_name[] = {
   "intrinsic" JVMCI_ONLY("_or_type_checked_inlining"),
   "bimorphic" JVMCI_ONLY("_or_optimized_type_check"),
   "profile_predicate",
+  "auto_vectorization_check",
   "unloaded",
   "uninitialized",
   "initialized",

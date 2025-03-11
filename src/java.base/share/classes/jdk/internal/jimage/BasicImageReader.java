@@ -46,7 +46,7 @@ import jdk.internal.jimage.decompressor.Decompressor;
  * to the jimage file provided by the shipped JDK by tools running on JDK 8.
  */
 public class BasicImageReader implements AutoCloseable {
-    @SuppressWarnings("removal")
+    @SuppressWarnings({ "removal", "suppression" })
     private static boolean isSystemProperty(String key, String value, String def) {
         // No lambdas during bootstrap
         return AccessController.doPrivileged(
