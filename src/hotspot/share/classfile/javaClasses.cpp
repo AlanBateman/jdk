@@ -5078,7 +5078,7 @@ void java_util_concurrent_locks_AbstractOwnableSynchronizer::compute_offsets() {
 
 oop java_util_concurrent_locks_AbstractOwnableSynchronizer::get_owner_threadObj(oop obj) {
   assert(_owner_offset != 0, "Must be initialized");
-  return obj->obj_field(_owner_offset);
+  return obj->obj_field_acquire(_owner_offset);
 }
 
 #if INCLUDE_CDS

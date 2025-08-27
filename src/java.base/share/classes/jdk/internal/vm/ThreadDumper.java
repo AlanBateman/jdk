@@ -335,6 +335,9 @@ public class ThreadDumper {
             // parkBlocker is an object to allow for exclusiveOwnerThread in the future
             jsonWriter.startObject("parkBlocker");
             jsonWriter.writeProperty("object", Objects.toIdentityString(parkBlocker));
+            if (snapshot.parkBlockerOwner() instanceof Thread owner) {
+                jsonWriter.writeProperty("owner", owner.threadId());
+            }
             jsonWriter.endObject();
         }
 

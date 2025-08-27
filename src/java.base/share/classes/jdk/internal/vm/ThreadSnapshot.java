@@ -48,6 +48,9 @@ class ThreadSnapshot {
     // set by ThreadSnapshot.of()
     private ThreadBlocker blocker;
 
+    // the owner of the parkBlocker when the blocker is an AQS.
+    private Object parkBlockerOwner;
+
     private ThreadSnapshot() {}
 
     /**
@@ -102,6 +105,13 @@ class ThreadSnapshot {
      */
     Object parkBlocker() {
         return getBlocker(BlockerLockType.PARK_BLOCKER);
+    }
+
+    /**
+     * Return the owner of the parkBlocker if the parkBlocker is an AQS.
+     */
+    Object parkBlockerOwner() {
+        return parkBlockerOwner;
     }
 
     /**

@@ -440,6 +440,12 @@ class DumpThreads {
             String parkBlocker = ti.parkBlocker();
             assertNotNull(parkBlocker);
             assertTrue(parkBlocker.contains("java.util.concurrent.locks.ReentrantLock"));
+
+            // the owner of the parkBlocker should be the current thread
+            long ownerTid = ti.parkBlockerOwner().orElse(-1L);
+            assertNotEquals(-1L, ownerTid, "parkBlockerOwner not found");
+            assertEquals(Thread.currentThread().threadId(), ownerTid);
+
             if (pinned) {
                 long carrierTid = ti.carrier().orElse(-1L);
                 assertNotEquals(-1L, carrierTid, "carrier not found");

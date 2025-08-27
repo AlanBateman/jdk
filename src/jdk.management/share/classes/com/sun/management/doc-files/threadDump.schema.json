@@ -76,6 +76,10 @@
                             "object": {
                               "type": "string",
                               "description": "The blocker object responsible for the thread parking."
+                            },
+                            "owner": {
+                              "type": "string",
+                              "description": "The thread identifier of the owner when the parkBlocker is an AbstractOwnableSynchronizer."
                             }
                           },
                           "required": [
