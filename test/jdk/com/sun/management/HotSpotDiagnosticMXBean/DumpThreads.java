@@ -425,7 +425,9 @@ class DumpThreads {
             ThreadFields fields = findThread(tid, lines);
             assertNotNull(fields, "thread not found");
             assertEquals("WAITING", fields.state());
-            assertTrue(contains(lines, "- parking to wait for <java.util.concurrent.locks.ReentrantLock"));
+            String line = find(lines, "- parking to wait for <java.util.concurrent.locks.ReentrantLock");
+            assertNotNull(line, "parking to wait line not found");
+            assertTrue(line.endsWith(" owner #" + Thread.currentThread().threadId()));
 
             // thread dump in JSON format should include thread in root container
             ThreadDump threadDump = dumpThreadsToJson();
@@ -683,11 +685,21 @@ class DumpThreads {
     }
 
     /**
-     * Returns true if lines of a plain text thread dump contain the given text.
+     * Returns true if lines of a plain text thread dump containing the given text.
      */
     private boolean contains(List<String> lines, String text) {
         return lines.stream().map(String::trim)
                 .anyMatch(l -> l.contains(text));
+    }
+
+    /**
+     * Finds the line of plain text plain thread dump containing the given text.
+     */
+    private String find(List<String> lines, String text) {
+        return lines.stream().map(String::trim)
+                .filter(l -> l.contains(text))
+                .findAny()
+                .orElse(null);
     }
 
     /**

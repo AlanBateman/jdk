@@ -1303,6 +1303,7 @@ public:
     if (park_blocker != nullptr) {
       _blocker = Blocker(Blocker::PARK_BLOCKER, OopHandle(oop_storage(), park_blocker));
       if (park_blocker->is_a(vmClasses::java_util_concurrent_locks_AbstractOwnableSynchronizer_klass())) {
+        // possibly stale read AbstractOwnableSynchronizer uses plain access
         oop ownerObj = java_util_concurrent_locks_AbstractOwnableSynchronizer::get_owner_threadObj(park_blocker);
          _park_blocker_owner = OopHandle(oop_storage(), ownerObj);
       }

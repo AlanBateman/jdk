@@ -35,8 +35,6 @@
 
 package java.util.concurrent.locks;
 
-import jdk.internal.misc.Unsafe;
-
 /**
  * A synchronizer that may be exclusively owned by a thread.  This
  * class provides a basis for creating locks and related synchronizers
@@ -73,8 +71,7 @@ public abstract class AbstractOwnableSynchronizer
      * @param thread the owner thread
      */
     protected final void setExclusiveOwnerThread(Thread thread) {
-        // VM uses acquiring load
-        U.putReferenceRelease(this, OWNER_THREAD, thread);
+        exclusiveOwnerThread = thread;
     }
 
     /**
@@ -85,12 +82,5 @@ public abstract class AbstractOwnableSynchronizer
      */
     protected final Thread getExclusiveOwnerThread() {
         return exclusiveOwnerThread;
-    }
-
-    private static final Unsafe U;
-    private static final long OWNER_THREAD;
-    static {
-        U = Unsafe.getUnsafe();
-        OWNER_THREAD = U.objectFieldOffset(AbstractOwnableSynchronizer.class, "exclusiveOwnerThread");
     }
 }
