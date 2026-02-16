@@ -228,7 +228,7 @@ final class StructuredTaskScopeImpl<T, R> implements StructuredTaskScope<T, R> {
     }
 
     @Override
-    public R join() throws InterruptedException {
+    public R join() throws ExecutionException, InterruptedException {
         ensureOwner();
         if (state >= ST_JOIN_COMPLETED) {
             throw new IllegalStateException("Already joined or scope is closed");
@@ -257,7 +257,7 @@ final class StructuredTaskScopeImpl<T, R> implements StructuredTaskScope<T, R> {
         try {
             return joiner.result();
         } catch (Throwable e) {
-            throw new FailedException(e);
+            throw new ExecutionException(e);
         }
     }
 

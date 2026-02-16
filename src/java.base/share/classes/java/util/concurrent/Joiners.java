@@ -220,7 +220,7 @@ class Joiners {
 
         @Override
         public void onTimeout() {
-            // do nothing, this joiner does not throw TimeoutException
+            // do nothing, this joiner does not throw CancelledByTimeoutException
         }
 
         @Override
