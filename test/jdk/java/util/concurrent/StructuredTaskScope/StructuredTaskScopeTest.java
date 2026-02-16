@@ -1425,7 +1425,7 @@ class StructuredTaskScopeTest {
      * Test Joiner.anySuccessfulOrThrow() with a timeout.
      */
     @Test
-    void anySuccessfulOrThrow6() throws Exception {
+    void testAnySuccessfulOrThrow6() throws Exception {
         try (var scope = StructuredTaskScope.open(Joiner.<String>anySuccessfulOrThrow(),
                 cf -> cf.withTimeout(Duration.ofMillis(100)))) {
             scope.fork(() -> { throw new FooException(); });
