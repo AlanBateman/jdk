@@ -44,7 +44,8 @@ import jdk.internal.javac.PreviewFeature;
  * The API is designed to be used with the {@code try}-with-resources statement where
  * the {@code StructuredTaskScope} is opened as a resource and then closed automatically.
  * The code inside the block uses the {@link #fork(Callable)} method to fork subtasks.
- * Each call to the {@code fork} method starts a new {@link Thread} to run the subtask.
+ * Each call to the {@code fork} method starts a new {@link Thread} (typically a
+ * {@linkplain Thread##virtual-threads virtual thread}) to execute the subtask.
  * After forking all subtasks, the code inside the block uses the {@link #join() join()}
  * method to wait for all subtasks to finish (or some other outcome) as a single operation.
  * The thread executing the task does not continue beyond the {@code close()} method until
@@ -57,9 +58,11 @@ import jdk.internal.javac.PreviewFeature;
  * the {@code join()} method after forking subtasks.
  *
  * <p> As a first example, consider a task that splits into two subtasks to concurrently
- * fetch resources from two URL locations "left" and "right". Both subtasks may complete
+ * fetch resources from two URL locations "left" and "right". The example invokes {@link
+ * #fork(Callable)} to fork the two subtasks. Each call to {@code fork(Callable)} returns
+ * a {@link Subtask Subtask} as a handle to the forked subtask. Both subtasks may complete
  * successfully, one subtask may succeed and the other may fail, or both subtasks may
- * fail. The task in this example is interested in the successful result from both
+ * fail. The main task in this example is interested in the successful result from both
  * subtasks. It waits in the {@link #join() join()} method for both subtasks to complete
  * successfully or for either subtask to fail.
  * {@snippet lang=java :
