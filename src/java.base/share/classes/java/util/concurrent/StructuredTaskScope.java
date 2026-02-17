@@ -158,13 +158,13 @@ import jdk.internal.javac.PreviewFeature;
  * both subtasks fail then the {@code join()} method throws {@code ExecutionException} with
  * the exception from one of the subtasks as the {@linkplain Throwable#getCause() cause}.
  *
- * <p> Whether code uses the {@code Subtask} returned from {@code fork(Callable} will
- * depend on the {@code Joiner} and usage. Some {@code Joiner} implementations are suited
- * to subtasks that return results of the same type and where the {@code join()} method
- * returns a result for the task to use. Code that forks subtasks that return results of
- * different types, and uses a {@code Joiner} such as {@link Joiner#awaitAllSuccessfulOrThrow()
- * awaitAllSuccessfulOrThrow} that does not return a result, will use {@link Subtask#get()
- * Subtask.get()} after joining.
+ * <p> Whether code uses the {@code Subtask} object returned from {@code fork(Callable)}
+ * will depend on the {@code Joiner} and usage. Some {@code Joiner} implementations are
+ * suited to subtasks that return results of the same type and where the {@code join()}
+ * method returns a result for the task to use. Code that forks subtasks that return
+ * results of different types, and uses a {@code Joiner} such as {@link
+ * Joiner#awaitAllSuccessfulOrThrow() awaitAllSuccessfulOrThrow} that simply return
+ * {@code null} will use {@link Subtask#get() Subtask.get()} after joining.
  *
  * <h2>Exception handling</h2>
  *
@@ -175,8 +175,11 @@ import jdk.internal.javac.PreviewFeature;
  * ExecutionException} with the exception as the {@linkplain Throwable#getCause()
  * cause}. For many {@code Joiner} implementations, the exception will be an exception
  * thrown by a subtask that failed. In the case of {@link Joiner#allSuccessfulOrThrow()
- * allSuccessfulOrThrow} and {@link Joiner#awaitAllSuccessfulOrThrow() awaitAllSuccessfulOrThrow}
- * for example, the exception is from the first subtask to fail.
+ * allSuccessfulOrThrow()} and {@link Joiner#awaitAllSuccessfulOrThrow()
+ * awaitAllSuccessfulOrThrow()}, the exception is from the first subtask to fail. The
+ * {@linkplain Throwable#getStackTrace() stack trace} of the {@code ExecutionException}
+ * will be the stack trace showing where {@code join()} was invoked by the main task. The
+ * stack trace of the cause will be the stack trace of the failed subtask.
  *
  * <p> Many of the details for how exceptions are handled will depend on usage. In some
  * cases it may be useful to add a {@code catch} block to the {@code try}-with-resources
