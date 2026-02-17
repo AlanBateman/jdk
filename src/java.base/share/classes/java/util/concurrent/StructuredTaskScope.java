@@ -133,9 +133,9 @@ import jdk.internal.javac.PreviewFeature;
  * each subtask produces a {@code String} result and the task is only interested in
  * the result from the first subtask to complete successfully. The example uses {@link
  * Joiner#anySuccessfulOrThrow() Joiner.anySuccessfulOrThrow()} to create a {@code Joiner}
- * that makes available the result of the first subtask to complete successfully. The type
- * parameter in the example is "{@code String}" so that only subtasks that return a
- * {@code String} can be forked.
+ * that yields the result of any subtask to complete successfully. The type parameter in
+ * the example is "{@code String}" so that only subtasks that return a {@code String} can
+ * be forked.
  * {@snippet lang=java :
  *    // @link substring="open" target="#open(Joiner)" :
  *    try (var scope = StructuredTaskScope.open(Joiner.<String>anySuccessfulOrThrow())) {
@@ -475,7 +475,7 @@ public sealed interface StructuredTaskScope<T, R>
      *   complete successfully. It cancels the scope and causes {@code join()} to throw if
      *   any subtask fails.
      *   <li> {@link #anySuccessfulOrThrow() anySuccessfulOrThrow()} creates a {@code Joiner}
-     *   that yields the result of the first subtask to succeed for {@code join()} to return.
+     *   that yields the result of any successful subtask for {@code join()} to return.
      *   It causes {@code join()} to throw if all subtasks fail.
      *   <li> {@link #awaitAllSuccessfulOrThrow() awaitAllSuccessfulOrThrow()} creates a
      *   {@code Joiner} that waits for all successful subtasks. It cancels the scope and
@@ -654,13 +654,15 @@ public sealed interface StructuredTaskScope<T, R>
         }
 
         /**
-         * {@return a new Joiner that yields the result of any subtask that
-         * completed successfully}
-         * The {@code Joiner} causes {@link #join() join()} to throw if all subtasks fail.
+         * {@return a new Joiner that yields the result of any subtask that completes
+         * successfully}
+         * The {@code Joiner} {@linkplain StructuredTaskScope##Cancellation cancels} the
+         * scope when a subtask completes successfully. It causes {@link #join() join()}
+         * to throw if all subtasks fail.
          *
          * <p> The joiner's {@link #result()} method returns the result of a subtask that
          * completed successfully. If all subtasks fail then the {@code result()} method
-         * throws the exception from one of the failed subtasks. The {@code result} method
+         * throws the exception from one of the failed subtasks. The {@code result()} method
          * throws {@link java.util.NoSuchElementException} if no subtasks were forked.
          *
          * <p> <b>Timeout Handling:</b> The joiner cannot produce a result after a timeout
