@@ -48,8 +48,9 @@ import jdk.internal.javac.PreviewFeature;
  * (typically a {@linkplain Thread##virtual-threads virtual thread}) to execute a subtask
  * as a value-returning method. After forking all subtasks, the code inside the block uses
  * the {@link #join() join()} method to wait for all subtasks to finish (or some other
- * outcome) as a single operation. Execution does not continue beyond the {@code close()}
- * method until all threads started in the scope to execute subtasks have finished.
+ * outcome) as a single operation. Execution does not continue beyond the {@code try} block
+ * (or {@code close} method) until all threads started in the scope to execute subtasks
+ * have finished.
  *
  * <p> To ensure correct usage, the {@code fork(Callable)}, {@code join()} and {@code
  * close()} methods may only be invoked by the <em>owner thread</em> (the thread that opened
@@ -129,9 +130,9 @@ import jdk.internal.javac.PreviewFeature;
  * failed subtask as the {@linkplain Throwable#getCause() cause}. Other {@code Joiner}
  * implementations may cancel the scope for other reasons.
  *
- * <p> Now consider another example that splits into two subtasks. In this example,
- * each subtask produces a {@code String} result and the task is only interested in
- * the result from the first subtask to complete successfully. The example uses {@link
+ * <p> Now consider another example where a main task splits into two subtasks. In this
+ * example, each subtask produces a {@code String} result and the task is only interested
+ * in the result from the first subtask to complete successfully. The example uses {@link
  * Joiner#anySuccessfulOrThrow() Joiner.anySuccessfulOrThrow()} to create a {@code Joiner}
  * that yields the result of any subtask to complete successfully. The type parameter in
  * the example is "{@code String}" so that only subtasks that return a {@code String} can
@@ -183,8 +184,9 @@ import jdk.internal.javac.PreviewFeature;
  *
  * <p> Many of the details for how exceptions are handled will depend on usage. In some
  * cases it may be useful to add a {@code catch} block to the {@code try}-with-resources
- * statement to catch {@code ExecutionException}. The exception handling may use {@code
- * instanceof} with pattern matching to handle specific causes.
+ * statement to catch {@code ExecutionException}. The exception handling may, for example,
+ * uses the {@code switch} statement to select based on the {@linkplain Throwable#getCause()
+ * cause}.
  * {@snippet lang=java :
  *    try (var scope = StructuredTaskScope.open()) {
  *
@@ -247,10 +249,10 @@ import jdk.internal.javac.PreviewFeature;
  *}
  *
  * <p> A second example sets a timeout, represented by a {@link Duration}. The timeout
- * starts when the new scope is opened. If the timeout expires before the {@code join()}
- * method has completed then the scope is {@linkplain ##Cancellation cancelled} (this
- * interrupts the threads executing the two subtasks), and the {@code join()} method
- * throws {@link CancelledByTimeoutException CancelledByTimeoutException}.
+ * starts when the new scope is opened. If the timeout expires before or while waiting in
+ * the {@link #join()} method then the scope is {@linkplain ##Cancellation cancelled}
+ * (this interrupts the threads executing the subtasks that have not completed), and the
+ * {@code join()} method throws {@link CancelledByTimeoutException CancelledByTimeoutException}.
  * {@snippet lang=java :
  *    Duration timeout = Duration.ofSeconds(10);
  *
@@ -482,7 +484,7 @@ public sealed interface StructuredTaskScope<T, R>
      *   causes {@code join()} to throw if any subtask fails.
      *   <li> {@link #awaitAll() awaitAll()} creates a {@code Joiner} that waits for all
      *   subtasks to complete. It does not cancel the scope or cause {@code join()} to
-     *   throw.
+     *   throw if subtasks fail.
      * </ul>
      *
      * <p> In addition to the methods to create {@code Joiner} objects for common cases,
