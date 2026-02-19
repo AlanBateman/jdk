@@ -42,15 +42,18 @@ import jdk.internal.javac.PreviewFeature;
  * <p> {@code StructuredTaskScope} defines the static {@link #open()} method to create
  * and open a new {@code StructuredTaskScope}. It defines the {@link #close() close()}
  * method to close it. The API is designed to be used with the {@code try}-with-resources
- * statement where the {@code StructuredTaskScope} is opened as a resource and then closed
+ * statement where a {@code StructuredTaskScope} is opened as a resource and then closed
  * automatically. The code inside the {@code try} block uses the {@link #fork(Callable)}
- * method to fork subtasks. Each call to the {@code fork} method starts a new {@link Thread}
- * (typically a {@linkplain Thread##virtual-threads virtual thread}) to execute a subtask
- * as a value-returning method. After forking all subtasks, the code inside the block uses
- * the {@link #join() join()} method to wait for all subtasks to finish (or some other
- * outcome) as a single operation. Execution does not continue beyond the {@code try} block
- * (or {@code close} method) until all threads started in the scope to execute subtasks
- * have finished.
+ * method to <em>fork</em> subtasks. Each call to the {@code fork} method starts a new
+ * {@link Thread} (typically a {@linkplain Thread##virtual-threads virtual thread}) to
+ * execute a subtask as a {@linkplain Callable value-returning method}. The subtask
+ * executes concurrently with the code inside the {@code try} block, and concurrently with
+ * other subtasks forked in the scope. After forking all subtasks, the code inside the
+ * block uses the {@link #join() join()} method to wait for all subtasks to finish (or
+ * some other outcome) as a single operation. The code after the {@code join()} method will
+ * typically process the outcome from the subtasks. Execution does not continue beyond the
+ * {@code try} block (or {@code close} method) until all threads started in the scope to
+ * execute subtasks have finished.
  *
  * <p> To ensure correct usage, the {@code fork(Callable)}, {@code join()} and {@code
  * close()} methods may only be invoked by the <em>owner thread</em> (the thread that opened
@@ -114,9 +117,9 @@ import jdk.internal.javac.PreviewFeature;
  * subtask completion and produces the outcome for the {@code join()} method. Instead of
  * {@code null}, a {@code Joiner} may cause {@code join()} to return the result of a specific
  * subtask, a collection of results, or an object constructed from the results of some or
- * all subtasks. The {@code Joiner} interface defines factory methods to create a {@code
- * Joiner} for a number of common cases. The interface can be implemented when a more
- * advanced or custom policy is required.
+ * all subtasks. The {@code Joiner} interface defines static factory methods to create a
+ * {@code Joiner} for a number of common cases. The interface can be implemented when a
+ * more advanced or custom policy is required.
  *
  * <p> A {@code Joiner} may <a id="Cancellation">cancel</a> the scope (sometimes called
  * "short-circuiting") when some condition is reached, e.g. a subtask fails, that does
@@ -134,7 +137,7 @@ import jdk.internal.javac.PreviewFeature;
  * example, each subtask produces a {@code String} result and the task is only interested
  * in the result from the first subtask to complete successfully. The example uses {@link
  * Joiner#anySuccessfulOrThrow() Joiner.anySuccessfulOrThrow()} to create a {@code Joiner}
- * that yields the result of any subtask to complete successfully. The type parameter in
+ * that yields the result of any subtask that completes successfully. The type parameter in
  * the example is "{@code String}" so that only subtasks that return a {@code String} can
  * be forked.
  * {@snippet lang=java :
@@ -1032,7 +1035,7 @@ public sealed interface StructuredTaskScope<T, R>
      * <em>forked subtask</em>. It invokes the joiner's {@link Joiner#onFork(Subtask) onFork}
      * method with the subtask in the {@link Subtask.State#UNAVAILABLE UNAVAILABLE} state.
      * If the {@code onFork} completes with an exception or error then it is propagated by
-     * the {@code for(Callable)} method without creating a thread. If the scope is already
+     * the {@code fork(Callable)} method without creating a thread. If the scope is already
      * {@linkplain ##Cancellation cancelled}, or {@code onFork} returns {@code true} to
      * cancel the scope, then this method returns the {@code Subtask}, in the
      * {@link Subtask.State#UNAVAILABLE UNAVAILABLE} state, without creating a thread to
@@ -1051,14 +1054,19 @@ public sealed interface StructuredTaskScope<T, R>
      * with the exception or error before the thread terminates.
      *
      * <p> This method returns the {@link Subtask Subtask} object. In some usages, this
-     * object may be used to get its result. In other cases it may be used for correlation
-     * or be discarded. To ensure correct usage, the {@link Subtask#get() Subtask.get()}
-     * method may only be called by the scope owner to get the result after it has
-     * waited for subtasks to complete with the {@link #join() join()} method and the subtask
-     * completed successfully. Similarly, the {@link Subtask#exception() Subtask.exception()}
-     * method may only be called by the scope owner after it has joined and the subtask
-     * failed. If the scope was cancelled before the subtask was forked, or before it
-     * completes, then neither method can be used to obtain the outcome.
+     * object will be used to get the subtask's outcome (result or exception) after
+     * {@linkplain #join() joining}. In other usages, the code invoking this method might
+     * discard the reference as the scope was created with a {@link Joiner Joiner} that
+     * produces the outcome to process after joining. Other usages might use {@code Subtask}
+     * objects for correlation purposes.
+     *
+     * <p> To ensure correct usage, the {@link Subtask#get() Subtask.get()} method may
+     * only be called by the scope owner to get the result of a successful subtask after
+     * it has waited for subtasks to complete with the {@link #join() join()} method.
+     * Similarly, the {@link Subtask#exception() Subtask.exception()} method may only be
+     * called by the scope owner to get the exception (or error) of a failed subtask after
+     * it has joined. If the scope was cancelled before the subtask was forked, or before
+     * the subtask completes, then neither method can be used to obtain the outcome.
      *
      * <p> This method may only be invoked by the scope owner.
      *
@@ -1169,19 +1177,17 @@ public sealed interface StructuredTaskScope<T, R>
      * is already closed then the scope owner invoking this method has no effect.
      *
      * <p> A {@code StructuredTaskScope} is intended to be used in a <em>structured
-     * manner</em>. If this method is called to close a scope before nested task
-     * scopes are closed then it closes the underlying construct of each nested scope
-     * (in the reverse order that they were created in), closes this scope, and then
-     * throws {@link StructureViolationException}.
-     * Similarly, if this method is called to close a scope while executing with
-     * {@linkplain ScopedValue scoped value} bindings, and the scope was created
-     * before the scoped values were bound, then {@code StructureViolationException} is
-     * thrown after closing the scope.
-     * If a thread terminates without first closing scopes that it owns then
-     * termination will cause the underlying construct of each of its open tasks scopes to
-     * be closed. Closing is performed in the reverse order that the scopes were
-     * created in. Thread termination may therefore be delayed when the scope owner
-     * has to wait for threads forked in these scopes to finish.
+     * manner</em>. If this method is called to close a scope before nested scopes are
+     * closed then it closes the underlying construct of each nested scope (in the reverse
+     * order that they were created in), closes this scope, and then throws {@link
+     * StructureViolationException}. Similarly, if this method is called to close a scope
+     * while executing with {@linkplain ScopedValue scoped value} bindings, and the scope
+     * was created before the scoped values were bound, then {@code StructureViolationException}
+     * is thrown after closing the scope. If a thread terminates without first closing
+     * scopes that it owns then termination will cause the underlying construct of each
+     * of its open scopes to be closed. Closing is performed in the reverse order that the
+     * scopes were created in. Thread termination may therefore be delayed when the scope
+     * owner has to wait for threads forked in these scopes to finish.
      *
      * @throws IllegalStateException thrown after closing the scope if the scope
      * owner did not attempt to join after forking
