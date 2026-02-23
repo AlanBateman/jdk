@@ -641,8 +641,8 @@ public sealed interface StructuredTaskScope<T, R>
          * subtasks were forked. If any subtask fails, then the {@code result()} method
          * throws the exception from the first subtask to fail.
          *
-         * <p> <b>Timeout Handling:</b> The joiner cannot produce a result after a timeout
-         * has expired. If the scope was opened with a {@linkplain
+         * <p> <b>Timeout Handling:</b> The joiner cannot produce an outcome when the
+         * scope is cancelled by a timeout. If the scope was opened with a {@linkplain
          * Configuration#withTimeout(Duration) timeout}, and the timeout expires before or
          * while waiting for all subtasks to complete successfully then the {@code join()}
          * method throws {@link CancelledByTimeoutException CancelledByTimeoutException}.
@@ -670,8 +670,8 @@ public sealed interface StructuredTaskScope<T, R>
          * throws the exception from one of the failed subtasks. The {@code result()} method
          * throws {@link java.util.NoSuchElementException} if no subtasks were forked.
          *
-         * <p> <b>Timeout Handling:</b> The joiner cannot produce a result after a timeout
-         * has expired. If the scope was opened with a {@linkplain
+         * <p> <b>Timeout Handling:</b> The joiner cannot produce an outcome when the
+         * scope is cancelled by a timeout. If the scope was opened with a {@linkplain
          * Configuration#withTimeout(Duration) timeout}, and the timeout expires before or
          * while waiting for a subtask to complete successfully, then the {@code join()}
          * method throws {@link CancelledByTimeoutException CancelledByTimeoutException}.
@@ -692,8 +692,8 @@ public sealed interface StructuredTaskScope<T, R>
          * complete successfully. If any subtask fails, then the {@code result()} method
          * throws the exception from the first subtask to fail.
          *
-         * <p> <b>Timeout Handling:</b> The joiner cannot produce a result after a timeout
-         * has expired. If the scope was opened with a {@linkplain
+         * <p> <b>Timeout Handling:</b> The joiner cannot produce an outcome when the
+         * scope is cancelled by a timeout. If the scope was opened with a {@linkplain
          * Configuration#withTimeout(Duration) timeout}, and the timeout expires before
          * or while waiting for all subtasks to complete successfully then the {@code
          * join()} method throws {@link CancelledByTimeoutException
@@ -714,8 +714,8 @@ public sealed interface StructuredTaskScope<T, R>
          * The {@code Joiner} does not cancel the scope if a subtask fails. The {@link
          * #result()} method returns {@code null}.
          *
-         * <p> <b>Timeout Handling:</b> The joiner cannot produce a result after a timeout
-         * has expired. If the scope was opened with a {@linkplain
+         * <p> <b>Timeout Handling:</b> The joiner cannot produce an outcome when the
+         * scope is cancelled by a timeout. If the scope was opened with a {@linkplain
          * Configuration#withTimeout(Duration) timeout}, and the timeout expires before or
          * while waiting for all subtasks to complete then the {@code join()} method throws
          * {@link CancelledByTimeoutException CancelledByTimeoutException}.
@@ -1130,6 +1130,12 @@ public sealed interface StructuredTaskScope<T, R>
      * <p> This method may only be invoked by the scope owner. It may only be invoked once
      * to get the result, exception or timeout outcome, unless the previous invocation
      * resulted in an {@code InterruptedException} being thrown.
+     *
+     * @apiNote {@code ExecutionException} is thrown when the outcome is an exception.
+     * Its {@linkplain Throwable#getStackTrace() stack trace} will be the stack trace of
+     * the call to the {@code join()} method. For many {@code Joiner} implementations, the
+     * {@linkplain Throwable#getCause() cause} will be the exception thrown by a failed
+     * subtask with the stack trace of the failed subtask.
      *
      * @return the result
      * @throws WrongThreadException if the current thread is not the scope owner
