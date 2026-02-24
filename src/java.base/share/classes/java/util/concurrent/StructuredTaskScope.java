@@ -644,7 +644,7 @@ public sealed interface StructuredTaskScope<T, R>
          * <p> <b>Timeout Handling:</b> The joiner cannot produce an outcome when the
          * scope is cancelled by a timeout. If the scope was opened with a {@linkplain
          * Configuration#withTimeout(Duration) timeout}, and the timeout expires before or
-         * while waiting for all subtasks to complete successfully then the {@code join()}
+         * while waiting for all subtasks to complete successfully, then the {@code join()}
          * method throws {@link CancelledByTimeoutException CancelledByTimeoutException}.
          *
          * @apiNote Joiners returned by this method are suited to cases where all subtasks
@@ -695,7 +695,7 @@ public sealed interface StructuredTaskScope<T, R>
          * <p> <b>Timeout Handling:</b> The joiner cannot produce an outcome when the
          * scope is cancelled by a timeout. If the scope was opened with a {@linkplain
          * Configuration#withTimeout(Duration) timeout}, and the timeout expires before
-         * or while waiting for all subtasks to complete successfully then the {@code
+         * or while waiting for all subtasks to complete successfully, then the {@code
          * join()} method throws {@link CancelledByTimeoutException
          * CancelledByTimeoutException}.
          *
@@ -717,7 +717,7 @@ public sealed interface StructuredTaskScope<T, R>
          * <p> <b>Timeout Handling:</b> The joiner cannot produce an outcome when the
          * scope is cancelled by a timeout. If the scope was opened with a {@linkplain
          * Configuration#withTimeout(Duration) timeout}, and the timeout expires before or
-         * while waiting for all subtasks to complete then the {@code join()} method throws
+         * while waiting for all subtasks to complete, then the {@code join()} method throws
          * {@link CancelledByTimeoutException CancelledByTimeoutException}.
          *
          * @apiNote This Joiner is useful for cases where subtasks make use of
@@ -962,8 +962,9 @@ public sealed interface StructuredTaskScope<T, R>
      * scope, and has no timeout.
      *
      * @implSpec
-     * This factory method is equivalent to invoking the 2-arg open method with the given
-     * joiner and the {@linkplain UnaryOperator#identity() identity operator}.
+     * This factory method is equivalent to invoking the
+     * {@linkplain #open(Joiner, UnaryOperator) 2-arg open} method with the given joiner
+     * and the {@linkplain UnaryOperator#identity() identity operator}.
      *
      * @param joiner the joiner
      * @return a new scope
@@ -987,9 +988,10 @@ public sealed interface StructuredTaskScope<T, R>
      * default configuration}.
      *
      * @implSpec
-     * This factory method is equivalent to invoking the 2-arg open method with a joiner
-     * created with {@link Joiner#awaitAllSuccessfulOrThrow() awaitAllSuccessfulOrThrow()}
-     * and the given configuration operator.
+     * This factory method is equivalent to invoking the
+     * {@linkplain #open(Joiner, UnaryOperator) 2-arg open} method with a joiner created
+     * with {@link Joiner#awaitAllSuccessfulOrThrow() awaitAllSuccessfulOrThrow()} and
+     * the given configuration operator.
      *
      * @param configOperator the operator to produce the configuration
      * @return a new scope
@@ -1013,9 +1015,10 @@ public sealed interface StructuredTaskScope<T, R>
      * scope, and has no timeout.
      *
      * @implSpec
-     * This factory method is equivalent to invoking the 2-arg open method with a joiner
-     * created with {@link Joiner#awaitAllSuccessfulOrThrow() awaitAllSuccessfulOrThrow()}
-     * and the {@linkplain UnaryOperator#identity() identity operator}.
+     * This factory method is equivalent to invoking the
+     * {@linkplain #open(Joiner, UnaryOperator) 2-arg open} method with a joiner created
+     * with {@link Joiner#awaitAllSuccessfulOrThrow() awaitAllSuccessfulOrThrow()} and
+     * the {@linkplain UnaryOperator#identity() identity operator}.
      *
      * @param <T> the result type of subtasks
      * @return a new scope
