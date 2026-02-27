@@ -786,7 +786,7 @@ public sealed interface StructuredTaskScope<T, R>
          * CancelledByTimeoutException CancelledByTimeoutException} will not be thrown.
          *
          * @apiNote
-         * The following example uses this method to create a {@code Joiner} that
+         * The following example uses {@code allUntil} to create a {@code Joiner} that
          * {@linkplain StructuredTaskScope##Cancellation cancels} the scope when two or
          * more subtasks fail.
          * {@snippet lang=java :
@@ -802,9 +802,10 @@ public sealed interface StructuredTaskScope<T, R>
          *     var joiner = Joiner.<String>allUntil(new CancelAfterTwoFailures());
          * }
          *
-         * <p> The following example uses {@code allUntil} to wait for all subtasks to
-         * complete without any cancellation. This is similar to {@link #awaitAll()}
-         * except that it yields a list of the completed subtasks.
+         * <p> The following example is a method that uses {@code allUntil} to create a
+         * {@code Joiner} that does not cancel the scope. The method waits for all subtasks
+         * to complete (successfully or with exception), and returns the subtasks in a
+         * list.
          * {@snippet lang=java :
          *    <T> List<Subtask<T>> invokeAll(Collection<Callable<T>> tasks) throws ExecutionException, InterruptedException {
          *        try (var scope = StructuredTaskScope.open(Joiner.<T>allUntil(_ -> false))) {
@@ -814,8 +815,8 @@ public sealed interface StructuredTaskScope<T, R>
          *    }
          * }
          *
-         * <p> The following example uses {@code allUntil} to get the results of all
-         * subtasks that complete successfully within a timeout period.
+         * <p> The following example returns the results of subtasks that complete
+         * successfully within a timeout period.
          * {@snippet lang=java :
          *    <T> List<T> invokeAll(Collection<Callable<T>> tasks, Duration timeout) throws ExecutionException, InterruptedException {
          *        try (var scope = StructuredTaskScope.open(Joiner.<T>allUntil(_ -> false), cf -> cf.withTimeout(timeout))) {
@@ -826,6 +827,27 @@ public sealed interface StructuredTaskScope<T, R>
          *                 .map(Subtask::get)
          *                 .toList();
          *         }
+         *     }
+         * }
+         *
+         * <p> The following example uses {@code allUntil} to create a {@code Joiner} that
+         * cancels the scope when any subtask completes successfully. It partitions the
+         * completed subtasks returned by the {@link #join() join()} method into one list
+         * of subtasks that completed successfully and another list of the failed subtasks.
+         * {@snippet lang=java :
+         *     Predicate<Subtask<?>> cancelOnSuccess = s -> s.state() == Subtask.State.SUCCESS;
+         *
+         *     try (var scope = StructuredTaskScope.open(Joiner.<String>allUntil(cancelOnSuccess))) {
+         *         tasks.forEach(scope::fork);
+         *
+         *         // wait for any subtask to complete successfully or all subtasks to fail
+         *         Map<Boolean, List<Subtask<String>>> completedSubtasks = scope.join().stream()
+         *                 .filter(s -> s.state() != Subtask.State.UNAVAILABLE)
+         *                 .collect(Collectors.partitioningBy(s -> s.state() == Subtask.State.SUCCESS,
+         *                                                   Collectors.toList()));
+         *
+         *         List<Subtask<String>> successfulSubtasks = completedSubtasks.get(Boolean.TRUE);
+         *         List<Subtask<String>> failedSubtasks = completedSubtasks.get(Boolean.FALSE);
          *     }
          * }
          *
