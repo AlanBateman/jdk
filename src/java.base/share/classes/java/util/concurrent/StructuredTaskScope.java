@@ -117,9 +117,13 @@ import jdk.internal.javac.PreviewFeature;
  * subtask completion and produces the outcome for the {@code join()} method. Instead of
  * {@code null}, a {@code Joiner} may cause {@code join()} to return the result of a specific
  * subtask, a collection of results, or an object constructed from the results of some or
- * all subtasks. The {@code Joiner} interface defines static factory methods to create a
- * {@code Joiner} for a number of common cases. The interface can be implemented when a
- * more advanced or custom policy is required.
+ * all subtasks. A {@code Joiner} that returns a non-{@code null} result remove the need
+ * to keep a reference to the subtask objects returned by the {@link #fork(Callable)}
+ * method.
+ *
+ * <p> The {@code Joiner} interface defines static factory methods to create a {@code Joiner}
+ * for a number of common cases. The interface can be implemented when a more advanced or
+ * custom policy is required.
  *
  * <p> A {@code Joiner} may <a id="Cancellation">cancel</a> the scope (sometimes called
  * "short-circuiting") when some condition is reached, e.g. a subtask fails, that does
