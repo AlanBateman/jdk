@@ -1633,16 +1633,15 @@ class StructuredTaskScopeTest {
     void testAllUntil4(ThreadFactory factory) throws Exception {
 
         // cancel execution after two or more failures
-        class CancelAfterTwoFailures<T> implements Predicate<Subtask<T>> {
+        class CancelAfterTwoFailures implements Predicate<Subtask<?>> {
             final AtomicInteger failedCount = new AtomicInteger();
             @Override
-            public boolean test(Subtask<T> subtask) {
+            public boolean test(Subtask<?> subtask) {
                 return subtask.state() == Subtask.State.FAILED
                         && failedCount.incrementAndGet() >= 2;
             }
         }
-        var joiner = Joiner.allUntil(new CancelAfterTwoFailures<String>());
-
+        var joiner = Joiner.<String>allUntil(new CancelAfterTwoFailures());
         try (var scope = StructuredTaskScope.open(joiner)) {
             int forkCount = 0;
 

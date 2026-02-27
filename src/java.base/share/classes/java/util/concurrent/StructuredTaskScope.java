@@ -785,16 +785,16 @@ public sealed interface StructuredTaskScope<T, R>
          * {@linkplain StructuredTaskScope##Cancellation cancels} the scope when two or
          * more subtasks fail.
          * {@snippet lang=java :
-         *    class CancelAfterTwoFailures<T> implements Predicate<Subtask<T>> {
+         *    class CancelAfterTwoFailures implements Predicate<Subtask<?>> {
          *         private final AtomicInteger failedCount = new AtomicInteger();
          *         @Override
-         *         public boolean test(Subtask<T> subtask) {
+         *         public boolean test(Subtask<?> subtask) {
          *             return subtask.state() == Subtask.State.FAILED
          *                     && failedCount.incrementAndGet() >= 2;
          *         }
          *     }
          *
-         *     var joiner = Joiner.allUntil(new CancelAfterTwoFailures<String>());
+         *     var joiner = Joiner.<String>allUntil(new CancelAfterTwoFailures());
          * }
          *
          * <p> The following example uses {@code allUntil} to wait for all subtasks to
@@ -813,9 +813,9 @@ public sealed interface StructuredTaskScope<T, R>
          * subtasks that complete successfully within a timeout period.
          * {@snippet lang=java :
          *    <T> List<T> invokeAll(Collection<Callable<T>> tasks, Duration timeout) throws ExecutionException, InterruptedException {
-         *    try (var scope = StructuredTaskScope.open(Joiner.<T>allUntil(_ -> false), cf -> cf.withTimeout(timeout))) {
-         *        tasks.forEach(scope::fork);
-         *        return scope.join()
+         *        try (var scope = StructuredTaskScope.open(Joiner.<T>allUntil(_ -> false), cf -> cf.withTimeout(timeout))) {
+         *            tasks.forEach(scope::fork);
+         *            return scope.join()
          *                 .stream()
          *                 .filter(s -> s.state() == Subtask.State.SUCCESS)
          *                 .map(Subtask::get)
@@ -827,7 +827,7 @@ public sealed interface StructuredTaskScope<T, R>
          * @param isDone the predicate to evaluate completed subtasks
          * @param <T> the result type of subtasks
          */
-        static <T> Joiner<T, List<Subtask<T>>> allUntil(Predicate<Subtask<T>> isDone) {
+        static <T> Joiner<T, List<Subtask<T>>> allUntil(Predicate<? super Subtask<? extends T>> isDone) {
             return new Joiners.AllSubtasks<>(isDone);
         }
     }
