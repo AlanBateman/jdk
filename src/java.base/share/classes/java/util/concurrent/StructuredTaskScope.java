@@ -117,7 +117,7 @@ import jdk.internal.javac.PreviewFeature;
  * subtask completion and produces the outcome for the {@code join()} method. Instead of
  * {@code null}, a {@code Joiner} may cause {@code join()} to return the result of a specific
  * subtask, a collection of results, or an object constructed from the results of some or
- * all subtasks. A {@code Joiner} that returns a non-{@code null} result remove the need
+ * all subtasks. A {@code Joiner} that returns a non-{@code null} result removes the need
  * to keep a reference to the subtask objects returned by the {@link #fork(Callable)}
  * method.
  *
@@ -167,12 +167,13 @@ import jdk.internal.javac.PreviewFeature;
  * the exception from one of the subtasks as the {@linkplain Throwable#getCause() cause}.
  *
  * <p> Whether code uses the {@code Subtask} object returned from {@code fork(Callable)}
- * will depend on the {@code Joiner} and usage. Some {@code Joiner} implementations are
- * suited to subtasks that return results of the same type and where the {@code join()}
- * method returns a result for the task to use. Code that forks subtasks that return
- * results of different types, and uses a {@code Joiner} such as {@link
- * Joiner#awaitAllSuccessfulOrThrow() awaitAllSuccessfulOrThrow} that simply return
- * {@code null} will use {@link Subtask#get() Subtask.get()} after joining.
+ * will depend on the {@code Joiner} and usage. Code that forks subtasks that return
+ * results of different types, and uses {@link Joiner#awaitAllSuccessfulOrThrow()
+ * awaitAllSuccessfulOrThrow()}, will need to do its own bookkeeping and keep a reference
+ * to each subtask so that it can {@linkplain Subtask#get() get} results after joining.
+ * A {@code Joiner} that returns a non-{@code null} result removes the need to keep a
+ * reference to the subtask objects returned by the {@code fork(Callable)} method. These
+ * usages will typically use the result of the {@link #join()} method.
  *
  * <h2>Exception handling</h2>
  *
