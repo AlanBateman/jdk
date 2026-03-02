@@ -763,14 +763,14 @@ public sealed interface StructuredTaskScope<T, R>
          * is cancelled by a timeout}
          *
          * <p> The joiner's {@link #onComplete(Subtask)} method invokes the predicate's
-         * {@link Predicate#test(Object) test} method with the subtask that completed
-         * successfully or failed with an exception. If the {@code test} method
-         * returns {@code true} then {@linkplain StructuredTaskScope##Cancellation
-         * the scope is cancelled}. The {@code test} method must be thread safe as it
-         * may be invoked concurrently from several threads. If the {@code test} method
-         * completes with an exception or error, then the thread that executed the subtask
-         * invokes the {@linkplain Thread.UncaughtExceptionHandler uncaught exception
-         * handler} with the exception or error before the thread terminates.
+         * {@link Predicate#test(Object) test} method with the completed subtask. If the
+         * {@code test} method returns {@code true} then {@linkplain
+         * StructuredTaskScope##Cancellation the scope is cancelled}. The {@code test}
+         * method must be thread safe as it may be invoked concurrently from several
+         * threads. If the {@code test} method completes with an exception or error, then
+         * the thread that executed the subtask invokes the {@linkplain
+         * Thread.UncaughtExceptionHandler uncaught exception handler} with the exception
+         * or error before the thread terminates.
          *
          * <p> The joiner's {@link #result()} method returns the list of all subtasks, in
          * fork order. The list may contain subtasks that have completed (in {@link
@@ -815,8 +815,8 @@ public sealed interface StructuredTaskScope<T, R>
          *    }
          * }
          *
-         * <p> The following example returns the results of subtasks that complete
-         * successfully within a timeout period.
+         * <p> The following example returns the results f subtasks that complete
+         * successfully within a timeout period. The list of
          * {@snippet lang=java :
          *    <T> List<T> invokeAll(Collection<Callable<T>> tasks, Duration timeout) throws ExecutionException, InterruptedException {
          *        try (var scope = StructuredTaskScope.open(Joiner.<T>allUntil(_ -> false), cf -> cf.withTimeout(timeout))) {
@@ -831,23 +831,25 @@ public sealed interface StructuredTaskScope<T, R>
          * }
          *
          * <p> The following example uses {@code allUntil} to create a {@code Joiner} that
-         * cancels the scope when any subtask completes successfully. It partitions the
-         * completed subtasks returned by the {@link #join() join()} method into one list
-         * of subtasks that completed successfully and another list of the failed subtasks.
+         * cancels the scope when any subtask completes successfully. The subtasks are
+         * grouped according to their state to produce a map with up to three mappings.
          * {@snippet lang=java :
-         *     Predicate<Subtask<?>> cancelOnSuccess = s -> s.state() == Subtask.State.SUCCESS;
+         *     Predicate<Subtask<?>> successfulSubtask = s -> s.state() == Subtask.State.SUCCESS;
          *
-         *     try (var scope = StructuredTaskScope.open(Joiner.<String>allUntil(cancelOnSuccess))) {
+         *     try (var scope = StructuredTaskScope.open(Joiner.<String>allUntil(isSuccess))) {
          *         tasks.forEach(scope::fork);
          *
-         *         // wait for any subtask to complete successfully or all subtasks to fail
-         *         Map<Boolean, List<Subtask<String>>> completedSubtasks = scope.join().stream()
-         *                 .filter(s -> s.state() != Subtask.State.UNAVAILABLE)
-         *                 .collect(Collectors.partitioningBy(s -> s.state() == Subtask.State.SUCCESS,
-         *                                                   Collectors.toList()));
+         *         Map<Subtask.State, List<Subtask<String>>> map = scope.join()
+         *                 .stream()
+         *                 // @link substring="Collectors.groupingBy" target="java.util.stream.Collectors#groupingBy" :
+         *                 .collect(Collectors.groupingBy(Subtask::state));
          *
-         *         List<Subtask<String>> successfulSubtasks = completedSubtasks.get(Boolean.TRUE);
-         *         List<Subtask<String>> failedSubtasks = completedSubtasks.get(Boolean.FALSE);
+         *         // the result of any successful subtask
+         *         // @link substring="getOrDefault" target="java.util.Map#getOrDefault" :
+         *         Optional<String> anyResult = map.getOrDefault(Subtask.State.SUCCESS, List.of())
+         *                 .stream()
+         *                 .findAny()
+         *                 .map(Subtask::get);
          *     }
          * }
          *
