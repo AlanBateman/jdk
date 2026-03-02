@@ -193,12 +193,12 @@ class Joiners {
      * A joiner that returns a list of all subtasks.
      */
     static final class AllSubtasks<T> implements Joiner<T, List<Subtask<T>>> {
-        private final Predicate<? super Subtask<? extends T>> isDone;
+        private final Predicate<? super Subtask<T>> isDone;
 
         // list of forked subtasks, created lazily, only accessed by owner thread
         private List<Subtask<T>> subtasks;
 
-        AllSubtasks(Predicate<? super Subtask<? extends T>> isDone) {
+        AllSubtasks(Predicate<? super Subtask<T>> isDone) {
             this.isDone = Objects.requireNonNull(isDone);
         }
 

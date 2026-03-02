@@ -834,9 +834,9 @@ public sealed interface StructuredTaskScope<T, R>
          * cancels the scope when any subtask completes successfully. The subtasks are
          * grouped according to their state to produce a map with up to three mappings.
          * {@snippet lang=java :
-         *     Predicate<Subtask<?>> successfulSubtask = s -> s.state() == Subtask.State.SUCCESS;
+         *     Predicate<Subtask<?>> isSuccessful = s -> s.state() == Subtask.State.SUCCESS;
          *
-         *     try (var scope = StructuredTaskScope.open(Joiner.<String>allUntil(isSuccess))) {
+         *     try (var scope = StructuredTaskScope.open(Joiner.<String>allUntil(isSuccessful))) {
          *         tasks.forEach(scope::fork);
          *
          *         Map<Subtask.State, List<Subtask<String>>> map = scope.join()
@@ -856,7 +856,7 @@ public sealed interface StructuredTaskScope<T, R>
          * @param isDone the predicate to evaluate completed subtasks
          * @param <T> the result type of subtasks
          */
-        static <T> Joiner<T, List<Subtask<T>>> allUntil(Predicate<? super Subtask<? extends T>> isDone) {
+        static <T> Joiner<T, List<Subtask<T>>> allUntil(Predicate<? super Subtask<T>> isDone) {
             return new Joiners.AllSubtasks<>(isDone);
         }
     }
