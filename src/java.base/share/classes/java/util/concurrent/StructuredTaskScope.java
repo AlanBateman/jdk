@@ -50,17 +50,17 @@ import jdk.internal.javac.PreviewFeature;
  * executes concurrently with the code inside the {@code try} block, and concurrently with
  * other subtasks forked in the scope. After forking all subtasks, the code inside the
  * block uses the {@link #join() join()} method to wait for all subtasks to finish (or
- * some other outcome) as a single operation. The code after the {@code join()} method will
- * typically process the outcome from the subtasks. Execution does not continue beyond the
- * {@code try} block (or {@code close} method) until all threads started in the scope to
- * execute subtasks have finished.
+ * some other outcome) as a single operation. The code after the {@code join()} method
+ * processes the outcome. Execution does not continue beyond the {@code try} block (or
+ * {@code close} method) until all threads started in the scope to execute subtasks have
+ * finished.
  *
- * <p> To ensure correct usage, the {@code fork(Callable)}, {@code join()} and {@code
- * close()} methods may only be invoked by the <em>owner thread</em> (the thread that opened
- * the {@code StructuredTaskScope}), the {@code fork(Callable)} method may not be called
- * after {@code join()}, the {@code join()} method must be invoked to get the outcome after
- * forking subtasks, and the {@code close()} method throws an exception after closing if
- * the owner did not invoke the {@code join()} method after forking subtasks.
+ * <p> To ensure correct usage, the {@link #fork(Callable)}, {@link #join()} and {@link
+ * #close()} methods may only be invoked by the <em>owner thread</em> (the thread that
+ * opened the {@code StructuredTaskScope}), the {@code fork(Callable)} method may not be
+ * called after {@code join()}, the {@code join()} method must be invoked to get the outcome
+ * after forking subtasks, and the {@code close()} method throws an exception after closing
+ * if the owner did not invoke the {@code join()} method after forking subtasks.
  *
  * <p> As a first example, consider a "main" task that splits into two subtasks to
  * concurrently fetch values from two remote services. The main task aggregates the results
@@ -95,18 +95,19 @@ import jdk.internal.javac.PreviewFeature;
  * cancelled (this will {@linkplain Thread#interrupt() interrupt} the thread executing the
  * other subtask) and the {@code join()} method throws {@link ExecutionException} with the
  * exception from the failed subtask as the {@linkplain Throwable#getCause() cause}.
+ * The {@link #close() close()} method always waits for threads executing subtasks to
+ * finish, even if the scope is cancelled, so execution cannot continue beyond the
+ * {@code try} block and {@code close()} method until the interrupted threads finish.
  *
  * <p> To allow for cancellation, subtasks must be coded so that they finish as soon as
  * possible when interrupted. Subtasks that do not respond to interrupt, e.g. block on
- * methods that are not interruptible, may delay the closing of a {@code StructuredTaskScope}
- * indefinitely. The {@link #close() close()} method always waits for threads executing
- * subtasks to finish, even if the scope is cancelled, so execution cannot continue beyond
- * the {@code close()} method until the interrupted threads finish.
+ * methods that are not interruptible, may delay the {@link #close() close()} method
+ * indefinitely.
  *
  * <p> In the example, the subtasks produce results of different types ({@code String} and
  * {@code Integer}). In other cases the subtasks may all produce results of the same type.
- * If the example had used {@code StructuredTaskScope.<String>open()} then it could
- * only be used to fork subtasks that return a {@code String} result.
+ * If the example had used {@code StructuredTaskScope.<String>open()} to open the scope
+ * then it could only be used to fork subtasks that return a {@code String} result.
  *
  * <h2>Joiners</h2>
  *
@@ -763,12 +764,13 @@ public sealed interface StructuredTaskScope<T, R>
          * is cancelled by a timeout}
          *
          * <p> The joiner's {@link #onComplete(Subtask)} method invokes the predicate's
-         * {@link Predicate#test(Object) test} method with the completed subtask. If the
-         * {@code test} method returns {@code true} then {@linkplain
-         * StructuredTaskScope##Cancellation the scope is cancelled}. The {@code test}
-         * method must be thread safe as it may be invoked concurrently from several
-         * threads. If the {@code test} method completes with an exception or error, then
-         * the thread that executed the subtask invokes the {@linkplain
+         * {@link Predicate#test(Object) test(Object)} method with the completed subtask.
+         * It is invoked in the context of the thread that executed the subtask. If the
+         * {@code test(Object)} method returns {@code true} then {@linkplain
+         * StructuredTaskScope##Cancellation the scope is cancelled}. The {@code
+         * test(Object)} method must be thread safe as it may be invoked concurrently from
+         * several threads. If the {@code test} method completes with an exception or error,
+         * then the thread that executed the subtask invokes the {@linkplain
          * Thread.UncaughtExceptionHandler uncaught exception handler} with the exception
          * or error before the thread terminates.
          *
