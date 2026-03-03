@@ -804,37 +804,11 @@ public sealed interface StructuredTaskScope<T, R>
          *     var joiner = Joiner.<String>allUntil(new CancelAfterTwoFailures());
          * }
          *
-         * <p> The following example is a method that uses {@code allUntil} to create a
-         * {@code Joiner} that does not cancel the scope. The method waits for all subtasks
-         * to complete (successfully or with exception), and returns the subtasks in a
-         * list.
-         * {@snippet lang=java :
-         *    <T> List<Subtask<T>> invokeAll(Collection<Callable<T>> tasks) throws ExecutionException, InterruptedException {
-         *        try (var scope = StructuredTaskScope.open(Joiner.<T>allUntil(_ -> false))) {
-         *            tasks.forEach(scope::fork);
-         *            return scope.join();
-         *        }
-         *    }
-         * }
-         *
-         * <p> The following example returns the results f subtasks that complete
-         * successfully within a timeout period. The list of
-         * {@snippet lang=java :
-         *    <T> List<T> invokeAll(Collection<Callable<T>> tasks, Duration timeout) throws ExecutionException, InterruptedException {
-         *        try (var scope = StructuredTaskScope.open(Joiner.<T>allUntil(_ -> false), cf -> cf.withTimeout(timeout))) {
-         *            tasks.forEach(scope::fork);
-         *            return scope.join()
-         *                 .stream()
-         *                 .filter(s -> s.state() == Subtask.State.SUCCESS)
-         *                 .map(Subtask::get)
-         *                 .toList();
-         *         }
-         *     }
-         * }
-         *
          * <p> The following example uses {@code allUntil} to create a {@code Joiner} that
          * cancels the scope when any subtask completes successfully. The subtasks are
-         * grouped according to their state to produce a map with up to three mappings.
+         * grouped according to their {@linkplain Subtask.State state} to produce a map
+         * with up to three key-value mappings. The map key is the subtask state, the
+         * value is the list of subtasks in that state.
          * {@snippet lang=java :
          *     Predicate<Subtask<?>> isSuccessful = s -> s.state() == Subtask.State.SUCCESS;
          *
@@ -853,6 +827,22 @@ public sealed interface StructuredTaskScope<T, R>
          *                 .findAny()
          *                 .map(Subtask::get);
          *     }
+         * }
+         *
+         * <p> The following example is a method that uses {@code allUntil} to create a
+         * {@code Joiner} that does not cancel the scope. The method waits for all subtasks
+         * to complete or a timeout to expire. It returns a list of all subtasks, in the
+         * same order as the collection of callables. It does not throw {@link
+         * CancelledByTimeoutException CancelledByTimeoutException}.
+         *
+         * {@snippet lang=java :
+         *    <T> List<Subtask<T>> invokeAll(Collection<Callable<T>> tasks, Duration timeout) throws ExecutionException, InterruptedException {
+         *        // @link substring="withTimeout" target="Configuration#withTimeout(Duration)" :
+         *        try (var scope = StructuredTaskScope.open(Joiner.<T>allUntil(_ -> false), cf -> cf.withTimeout(timeout))) {
+         *            tasks.forEach(scope::fork);
+         *            return scope.join();
+         *        }
+         *    }
          * }
          *
          * @param isDone the predicate to evaluate completed subtasks
