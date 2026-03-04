@@ -71,7 +71,7 @@ import jdk.internal.javac.PreviewFeature;
  * interested in the successful result from both subtasks. It waits in the {@link #join()
  * join()} method for both subtasks to complete successfully or for either subtask to fail.
  * {@snippet lang=java :
- *    // @link substring="open" target="#open()" :
+ *    // @link substring="open()" target="#open()" :
  *    try (var scope = StructuredTaskScope.open()) {
  *
  *        // @link substring="fork" target="#fork(Callable)" :
@@ -79,11 +79,11 @@ import jdk.internal.javac.PreviewFeature;
  *        Subtask<Integer> subtask2 = scope.fork(() -> fetchFromRemoteService2());
  *
  *        // throws if either subtask fails
- *        scope.join();  // @link substring="join" target="#join()"
+ *        scope.join();  // @link substring="join()" target="#join()"
  *
  *        // both subtasks completed successfully
- *        // @link substring="get" target="Subtask#get()" :
- *        return new MyResult(subtask1.get(), subtask2.get());
+ *        // @link substring="get()" target="Subtask#get()" :
+ *        var result = new MyResult(subtask1.get(), subtask2.get());
  *
  *    // @link substring="close" target="#close()" :
  *    } // close
@@ -146,16 +146,18 @@ import jdk.internal.javac.PreviewFeature;
  * the example is "{@code String}" so that only subtasks that return a {@code String} can
  * be forked.
  * {@snippet lang=java :
- *    // @link substring="open" target="#open(Joiner)" :
+ *    // @link substring="anySuccessfulOrThrow()" target="Joiner#anySuccessfulOrThrow()" :
  *    try (var scope = StructuredTaskScope.open(Joiner.<String>anySuccessfulOrThrow())) {
  *
+ *        // @link substring="fork" target="#fork(Callable)" :
  *        scope.fork(callable1);
  *        scope.fork(callable2);
  *
  *        // throws if both subtasks fail
- *        String firstResult = scope.join();
+ *        String firstResult = scope.join(); // @link substring="join" target="#join()"
  *
- *    }
+ *    // @link substring="close" target="#close()" :
+ *    } // close
  * }
  *
  * <p> In the example, the task forks the two subtasks, then waits in the {@code
