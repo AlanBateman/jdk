@@ -240,7 +240,7 @@ import jdk.internal.javac.PreviewFeature;
  * Configuration} for the {@code StructuredTaskScope} under construction.
  *
  * <p> The following example opens a new {@code StructuredTaskScope} with a {@code
- * ThreadFactory} that creates virtual threads {@linkplain Thread#setName(String) named}
+ * ThreadFactory} that creates virtual threads with {@linkplain Thread#getName() named}
  * "duke-0", "duke-1" ...
  * {@snippet lang = java:
  *    // @link substring="name" target="Thread.Builder#name(String, long)" :
@@ -394,7 +394,7 @@ public sealed interface StructuredTaskScope<T, R>
     @PreviewFeature(feature = PreviewFeature.Feature.STRUCTURED_CONCURRENCY)
     sealed interface Subtask<T> extends Supplier<T> permits StructuredTaskScopeImpl.SubtaskImpl {
         /**
-         * Represents the state of a subtask.
+         * Represents the state of a {@link Subtask Subtask}.
          * @see Subtask#state()
          * @since 21
          */
@@ -612,7 +612,8 @@ public sealed interface StructuredTaskScope<T, R>
          * <p> This method is invoked by the {@code join()} method. It should not be
          * invoked directly.
          *
-         * @throws CancelledByTimeoutException for {@code join()} to throw
+         * @throws CancelledByTimeoutException if this joiner cannot produce a result
+         * after the scope was cancelled by a timeout
          * @since 26
          */
         default void onTimeout() throws CancelledByTimeoutException {
@@ -817,17 +818,10 @@ public sealed interface StructuredTaskScope<T, R>
          *     try (var scope = StructuredTaskScope.open(Joiner.<String>allUntil(isSuccessful))) {
          *         tasks.forEach(scope::fork);
          *
-         *         Map<Subtask.State, List<Subtask<String>>> map = scope.join()
+         *         Map<Subtask.State, List<Subtask<String>>> subtasksByState = scope.join()
          *                 .stream()
          *                 // @link substring="Collectors.groupingBy" target="java.util.stream.Collectors#groupingBy" :
          *                 .collect(Collectors.groupingBy(Subtask::state));
-         *
-         *         // the result of any successful subtask
-         *         // @link substring="getOrDefault" target="java.util.Map#getOrDefault" :
-         *         Optional<String> anyResult = map.getOrDefault(Subtask.State.SUCCESS, List.of())
-         *                 .stream()
-         *                 .findAny()
-         *                 .map(Subtask::get);
          *     }
          * }
          *
