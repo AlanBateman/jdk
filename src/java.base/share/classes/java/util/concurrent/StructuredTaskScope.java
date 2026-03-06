@@ -661,6 +661,21 @@ public sealed interface StructuredTaskScope<T, R>
          * #awaitAllSuccessfulOrThrow()} are suited to cases where the subtasks return
          * results of different types.
          *
+         * <p> The following example is a method that opens a {@code StructuredTaskScope}
+         * with a joiner created with {@code Joiner.allSuccessfulOrThrow()}. The method
+         * {@linkplain #fork(Callable) forks} a subtask for each {@link Callable} in a
+         * list. It waits in {@link #join() join()} for all subtasks to complete
+         * successfully and then returns a list of the results.
+         * {@snippet lang=java :
+         *   <T> List<T> invokeAll(Collection<Callable<T>> tasks) throws ExecutionException, InterruptedException {
+         *         try (var scope = StructuredTaskScope.open(Joiner.<T>allSuccessfulOrThrow())) {
+         *             tasks.forEach(scope::fork);
+         *             List<T> results = scope.join();
+         *             return results;
+         *         }
+         *   }
+         * }
+         *
          * @param <T> the result type of subtasks
          */
         static <T> Joiner<T, List<T>> allSuccessfulOrThrow() {
@@ -684,6 +699,21 @@ public sealed interface StructuredTaskScope<T, R>
          * Configuration#withTimeout(Duration) timeout}, and the timeout expires before or
          * while waiting for a subtask to complete successfully, then the {@code join()}
          * method throws {@link CancelledByTimeoutException CancelledByTimeoutException}.
+         *
+         * @apiNote The following example is a method that opens a {@code StructuredTaskScope}
+         * with a joiner created with {@code Joiner.anySuccessfulOrThrow()}. The method
+         * {@linkplain #fork(Callable) forks} a subtask for each {@link Callable} in a
+         * list. It waits in {@link #join() join()} for any subtask to complete
+         * successfully.
+         * {@snippet lang=java :
+         *   <T> T invokeAny(Collection<Callable<T>> tasks) throws ExecutionException, InterruptedException {
+         *         try (var scope = StructuredTaskScope.open(Joiner.<T>anySuccessfulOrThrow())) {
+         *             tasks.forEach(scope::fork);
+         *             T result = scope.join();
+         *             return result;
+         *         }
+         *   }
+         * }
          *
          * @param <T> the result type of subtasks
          * @since 26
