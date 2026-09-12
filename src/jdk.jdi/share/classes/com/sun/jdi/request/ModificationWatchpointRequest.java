@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,7 +31,7 @@ import com.sun.jdi.event.ModificationWatchpointEvent;
 
 /**
  * Request for notification when a field is set.
- * This event will be triggered when a value is assigned to the specified
+ * The event will be triggered when a value is assigned to the specified
  * field with a Java programming
  * language statement (assignment, increment, etc) or by a
  * Java Native Interface (JNI) set function (<code>Set&lt;Type&gt;Field,
@@ -45,6 +45,14 @@ import com.sun.jdi.event.ModificationWatchpointEvent;
  * will be placed on the {@link EventQueue EventQueue}.
  * The collection of existing watchpoints is
  * managed by the {@link EventRequestManager}.
+ * <p>
+ * A notification is not generated for an instance field while the object
+ * containing the field is being constructed by the event thread, if the
+ * object's class, or any of its superclasses, has
+ * {@linkplain java.lang.reflect.Field#isStrictInit() strictly-initialized}
+ * instance fields. A notification is also not generated for a static field
+ * when the class declaring the field is being initialized by the event thread
+ * and the class declares strictly-initialized static fields.
  *
  * @see ModificationWatchpointEvent
  * @see AccessWatchpointRequest

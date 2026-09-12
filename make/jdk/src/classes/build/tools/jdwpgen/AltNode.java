@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -46,7 +46,13 @@ class AltNode extends AbstractGroupNode implements TypeNode {
     }
 
     void document(PrintWriter writer) {
-        writer.println("<tr>");
+        Node node = parent;
+        while (node != null && !(node instanceof AbstractCommandNode)) {
+            node = node.parent;
+        }
+        String prefix = node != null ? node.context.whereC : context.whereC;
+        String id = prefix + "_" + select.typeNode.name + "_" + nameNode.name;
+        writer.println("<tr id=\"" + id + "\">");
         writer.println("<th colspan=\"2\" scope=\"row\">"
                 + indentElement(structIndent,
                     "Case " + nameNode.name
