@@ -2279,17 +2279,52 @@ void JvmtiExport::post_field_access_by_jni(JavaThread *thread, oop obj,
   post_field_access(thread, method, address, klass, h_obj, fieldID);
 }
 
+static bool should_skip_field_event_during_strict_initialization(JavaThread* thread, Klass* field_klass,
+                                                                 Handle object, jfieldID field,
+                                                                 bool is_first_strict_static_write = false) {
+  fieldDescriptor fd;
+  if (!JvmtiEnv::get_field_descriptor(field_klass, field, &fd)) {
+    return false;
+  }
+
+  if (fd.is_static()) {
+    return fd.field_holder()->has_unset_strict_static_fields() ||
+           is_first_strict_static_write;
+  }
+
+  ResourceMark rm(thread);
+  RegisterMap reg_map(thread,
+                      RegisterMap::UpdateMap::skip,
+                      RegisterMap::ProcessFrames::skip,
+                      RegisterMap::WalkContinuation::skip);
+  for (javaVFrame* jvf = thread->last_java_vframe(&reg_map); jvf != nullptr; jvf = jvf->java_sender()) {
+    Method* frame_method = jvf->method();
+    if (frame_method->is_object_constructor() && frame_method->method_holder()->has_strict_instance_fields_in_hierarchy()) {
+      StackValueCollection* locals = jvf->locals();
+      if (!locals->is_empty()) {
+        StackValue* receiver = locals->at(0);
+        if (receiver->type() == T_OBJECT && !receiver->obj_is_scalar_replaced() && receiver->get_obj()() == object()) {
+          return !frame_method->strict_instance_fields_initialized_at(jvf->bci());
+        }
+      }
+    }
+  }
+  return false;
+}
+
 void JvmtiExport::post_field_access(JavaThread *thread, Method* method,
   address location, Klass* field_klass, Handle object, jfieldID field) {
 
   HandleMark hm(thread);
   methodHandle mh(thread, method);
-
   JvmtiThreadState *state = get_jvmti_thread_state(thread);
   if (state == nullptr) {
     return;
   }
   if (thread->should_hide_jvmti_events()) {
+    return;
+  }
+  if (should_skip_field_event_during_strict_initialization(thread, field_klass, object, field)) {
     return;
   }
 
@@ -2382,7 +2417,7 @@ void JvmtiExport::post_field_modification_by_jni(JavaThread *thread, oop obj,
 
 void JvmtiExport::post_raw_field_modification(JavaThread *thread, Method* method,
   address location, Klass* field_klass, Handle object, jfieldID field,
-  char sig_type, jvalue *value) {
+  char sig_type, jvalue *value, bool is_first_strict_static_write) {
 
   if (thread->should_hide_jvmti_events()) {
     return;
@@ -2440,7 +2475,8 @@ void JvmtiExport::post_raw_field_modification(JavaThread *thread, Method* method
     value->l = (jobject)JNIHandles::make_local(thread, cast_to_oop(value->l));
   }
 
-  post_field_modification(thread, method, location, field_klass, object, field, sig_type, value);
+  post_field_modification(thread, method, location, field_klass, object, field, sig_type, value,
+                          is_first_strict_static_write);
 
   // Destroy the JNI handle allocated above.
   if (handle_created) {
@@ -2450,7 +2486,7 @@ void JvmtiExport::post_raw_field_modification(JavaThread *thread, Method* method
 
 void JvmtiExport::post_field_modification(JavaThread *thread, Method* method,
   address location, Klass* field_klass, Handle object, jfieldID field,
-  char sig_type, jvalue *value_ptr) {
+  char sig_type, jvalue *value_ptr, bool is_first_strict_static_write) {
 
   HandleMark hm(thread);
   methodHandle mh(thread, method);
@@ -2460,6 +2496,10 @@ void JvmtiExport::post_field_modification(JavaThread *thread, Method* method,
     return;
   }
   if (thread->should_hide_jvmti_events()) {
+    return;
+  }
+  if (should_skip_field_event_during_strict_initialization(thread, field_klass, object, field,
+                                                           is_first_strict_static_write)) {
     return;
   }
 

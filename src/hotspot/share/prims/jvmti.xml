@@ -6619,6 +6619,7 @@ class C2 extends C1 implements I2 {
   <category id="fieldWatch" label="Watched Field">
 
     <intro>
+      When preview features are enabled, the following ...
     </intro>
 
     <function id="SetFieldAccessWatch" num="41">

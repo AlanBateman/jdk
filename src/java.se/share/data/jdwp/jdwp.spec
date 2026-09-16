@@ -2359,6 +2359,8 @@ JDWP "Java(tm) Debug Wire Protocol"
         "from the target VM. The two exceptions to this are the VM Start Event and "
         "the VM Death Event which are automatically generated events - see "
         "<a href=\"#JDWP_Event_Composite\">Composite Command</a> for further details."
+        "<p>"
+        "When preview features are enabled in the target VM, ..."
         (Out
             (byte eventKind "Event kind to request. "
                       "See <a href=\"#JDWP_EventKind\">JDWP.EventKind</a> "

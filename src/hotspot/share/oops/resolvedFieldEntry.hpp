@@ -56,7 +56,7 @@ class ResolvedFieldEntry {
   u2 _field_index;              // Index into field information in holder InstanceKlass
   u2 _cpool_index;              // Constant pool index
   u1 _tos_state;                // TOS state
-  u1 _flags;                    // Flags: [000|has_null_marker|is_null_free_value_type|is_flat|is_final|is_volatile]
+  u1 _flags;                    // Flags: [00|was_strict_static_unset|has_null_marker|is_null_free_value_type|is_flat|is_final|is_volatile]
   u1 _get_code, _put_code;      // Get and Put bytecodes of the field
 #ifdef _LP64
   u4 _padding;
@@ -87,7 +87,8 @@ public:
       is_flat_shift         = 2,
       is_null_free_value_type_shift = 3,
       has_null_marker_shift = 4,
-      max_flag_shift = has_null_marker_shift
+      was_strict_static_unset_shift = 5,
+      max_flag_shift = was_strict_static_unset_shift
   };
 
   // Getters
@@ -103,6 +104,7 @@ public:
   bool is_flat()                  const { return (_flags & (1 << is_flat_shift))     != 0; }
   bool is_null_free_value_type() const { return (_flags & (1 << is_null_free_value_type_shift)) != 0; }
   bool has_null_marker()          const { return (_flags & (1 << has_null_marker_shift)) != 0; }
+  bool was_strict_static_unset()  const { return (_flags & (1 << was_strict_static_unset_shift)) != 0; }
   bool is_resolved(Bytecodes::Code code) const {
     switch(code) {
     case Bytecodes::_getstatic:
@@ -125,19 +127,22 @@ public:
                  bool is_final_flag,
                  bool is_flat_flag,
                  bool is_null_free_value_type_flag,
-                 bool has_null_marker_flag) {
+                 bool has_null_marker_flag,
+                 bool was_strict_static_unset_flag) {
     int new_flags =
         ((is_volatile_flag ? 1 : 0) << is_volatile_shift) |
         ((is_final_flag ? 1 : 0) << is_final_shift) |
         ((is_flat_flag ? 1 : 0) << is_flat_shift) |
         ((is_null_free_value_type_flag ? 1 : 0) << is_null_free_value_type_shift) |
-        ((has_null_marker_flag  ? 1 : 0) << has_null_marker_shift);
+        ((has_null_marker_flag  ? 1 : 0) << has_null_marker_shift) |
+        ((was_strict_static_unset_flag ? 1 : 0) << was_strict_static_unset_shift);
     _flags = checked_cast<u1>(new_flags);
     assert(is_volatile() == is_volatile_flag, "Must be");
     assert(is_final() == is_final_flag, "Must be");
     assert(is_flat() == is_flat_flag, "Must be");
     assert(is_null_free_value_type() == is_null_free_value_type_flag, "Must be");
     assert(has_null_marker() == has_null_marker_flag, "Must be");
+    assert(was_strict_static_unset() == was_strict_static_unset_flag, "Must be");
   }
 
   inline void set_bytecode(u1* code, u1 new_code) {
@@ -154,7 +159,8 @@ public:
 
  public:
   // Populate the strucutre with resolution information
-  void fill_in(const fieldDescriptor& info, u1 tos_state, u1 get_code, u1 put_code);
+  void fill_in(const fieldDescriptor& info, u1 tos_state, u1 get_code, u1 put_code,
+               bool was_strict_static_unset);
 
   // CDS
 #if INCLUDE_CDS

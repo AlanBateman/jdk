@@ -739,6 +739,7 @@ void InterpreterRuntime::resolve_get_put(Bytecodes::Code bytecode, int field_ind
   // is completely initialized ala. in 2.17.5 in JVM Specification.
   InstanceKlass* klass = info.field_holder();
   bool uninitialized_static = is_static && !klass->is_initialized();
+  bool was_strict_static_unset = info.is_strict_static_unset();
   bool has_initialized_final_update = info.field_holder()->major_version() >= 53 &&
                                       info.has_initialized_final_update();
   bool strict_static_final = info.is_strict() && info.is_static() && info.is_final();
@@ -768,7 +769,8 @@ void InterpreterRuntime::resolve_get_put(Bytecodes::Code bytecode, int field_ind
 
   ResolvedFieldEntry* entry = pool->resolved_field_entry_at(field_index);
   entry->fill_in(info, checked_cast<u1>(state),
-                 static_cast<u1>(get_code), static_cast<u1>(put_code));
+                 static_cast<u1>(get_code), static_cast<u1>(put_code),
+                 was_strict_static_unset);
 }
 
 
@@ -1300,6 +1302,7 @@ JRT_ENTRY(void, InterpreterRuntime::post_field_modification(JavaThread* current,
 
   bool is_static = (obj == nullptr);
   bool is_flat = entry->is_flat();
+  bool is_first_strict_static_write = is_static && entry->was_strict_static_unset();
 
   HandleMark hm(current);
   jfieldID fid = jfieldIDWorkaround::to_jfieldID(ik, entry->field_offset(), is_static, is_flat);
@@ -1328,7 +1331,7 @@ JRT_ENTRY(void, InterpreterRuntime::post_field_modification(JavaThread* current,
 
   LastFrameAccessor last_frame(current);
   JvmtiExport::post_raw_field_modification(current, last_frame.method(), last_frame.bcp(), ik, h_obj,
-                                           fid, sig_type, &fvalue);
+                                           fid, sig_type, &fvalue, is_first_strict_static_write);
 JRT_END
 
 JRT_ENTRY(void, InterpreterRuntime::post_method_entry(JavaThread* current))

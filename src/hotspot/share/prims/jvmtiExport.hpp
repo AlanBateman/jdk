@@ -172,7 +172,8 @@ class JvmtiExport : public AllStatic {
 
   static void post_field_modification(JavaThread *thread, Method* method, address location,
                                       Klass* field_klass, Handle object, jfieldID field,
-                                      char sig_type, jvalue *value);
+                                      char sig_type, jvalue *value,
+                                      bool is_first_strict_static_write = false);
 
 
   // posts a DynamicCodeGenerated event (internal/private implementation).
@@ -351,7 +352,7 @@ class JvmtiExport : public AllStatic {
     jvalue *value);
   static void post_raw_field_modification(JavaThread *thread, Method* method,
     address location, Klass* field_klass, Handle object, jfieldID field,
-    char sig_type, jvalue *value) NOT_JVMTI_RETURN;
+    char sig_type, jvalue *value, bool is_first_strict_static_write) NOT_JVMTI_RETURN;
 
   static void post_method_entry          (JavaThread *thread, Method* method, frame current_frame) NOT_JVMTI_RETURN;
   static void post_method_exit           (JavaThread *thread, Method* method, frame current_frame) NOT_JVMTI_RETURN;

@@ -38,12 +38,14 @@ class ResolvedFieldEntryWithExtra : public ResolvedFieldEntry {
 };
 static_assert(sizeof(ResolvedFieldEntryWithExtra) > sizeof(ResolvedFieldEntry));
 
-void ResolvedFieldEntry::fill_in(const fieldDescriptor& info, u1 tos_state, u1 get_code, u1 put_code) {
+void ResolvedFieldEntry::fill_in(const fieldDescriptor& info, u1 tos_state, u1 get_code, u1 put_code,
+                                 bool was_strict_static_unset) {
   set_flags(info.access_flags().is_volatile(),
             info.access_flags().is_final(),
             info.is_flat(),
             info.is_null_free_value_type(),
-            info.has_null_marker());
+            info.has_null_marker(),
+            was_strict_static_unset);
   _field_holder = info.field_holder();
   _field_offset = info.offset();
   _field_index = checked_cast<u2>(info.index());
@@ -72,6 +74,7 @@ void ResolvedFieldEntry::print_on(outputStream* st) const {
   st->print_cr(" - Is Flat: %d", is_flat());
   st->print_cr(" - Is Null Free Value type: %d", is_null_free_value_type());
   st->print_cr(" - Has null marker: %d", has_null_marker());
+  st->print_cr(" - Was strict static unset: %d", was_strict_static_unset());
   st->print_cr(" - Get Bytecode: %s", Bytecodes::name((Bytecodes::Code)get_code()));
   st->print_cr(" - Put Bytecode: %s", Bytecodes::name((Bytecodes::Code)put_code()));
 }
