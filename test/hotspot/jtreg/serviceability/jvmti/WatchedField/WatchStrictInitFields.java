@@ -144,13 +144,13 @@ class WatchStrictInitFields {
             TestClass(int v1) {
                 x = v1;                // modification event not sent
                 super();
-                assertEquals(v1, x);   // access event not sent
+                assertEquals(v1, x);   // access event
             }
 
             TestClass(int v1, int v2) {
                 this(v1);
-                x = v2;                // modification event not sent
-                assertEquals(v2, x);   // access event not sent
+                x = v2;                // modification event
+                assertEquals(v2, x);   // access event
             }
 
             TestClass(int v1, int v2, int v3) {
@@ -160,11 +160,11 @@ class WatchStrictInitFields {
             }
 
             void x(int newX) {
-                x = newX;   // modification event?
+                x = newX;   // modification event
             }
 
             int x() {
-                return x;   // access event?
+                return x;   // access event
             }
         }
 
@@ -230,14 +230,14 @@ class WatchStrictInitFields {
                 x = v1;                // modification event not sent
                 y = v2;                // modification event not sent
                 super();
-                assertEquals(v1, x);   // access event not sent
-                assertEquals(v2, y);   // access event not sent
+                assertEquals(v1, x);   // access event
+                assertEquals(v2, y);   // access event
             }
 
             TestClass(int v1, int v2, int v3, int v4) {
                 this(v1, v2);
-                x = v3;                // modification event not sent
-                y = v4;                // modification event not sent
+                x = v3;                // modification event
+                y = v4;                // modification event
                 assertEquals(v3, x);   // access event
                 assertEquals(v4, y);   // access event
             }
@@ -251,19 +251,19 @@ class WatchStrictInitFields {
             }
 
             void x(int newX) {
-                x = newX;    // modification event?
+                x = newX;    // modification event
             }
 
             int x() {
-                return x;    // access event?
+                return x;    // access event
             }
 
             void y(int newY) {
-                y = newY;    // modification event?
+                y = newY;    // modification event
             }
 
             int y() {
-                return y;    // access event?
+                return y;    // access event
             }
         }
 
@@ -345,13 +345,13 @@ class WatchStrictInitFields {
             SuperClass(int v1) {
                 x = v1;                // modification event not sent
                 super();
-                assertEquals(v1, x);   // access event not sent
+                assertEquals(v1, x);   // access event
             }
 
             SuperClass(int v1, int v2) {
                 this(v1);
-                x = v2;                // modification event not sent
-                assertEquals(v2, x);   // access event not sent
+                x = v2;                // modification event
+                assertEquals(v2, x);   // access event
             }
 
             void x(int newX) {
@@ -370,8 +370,8 @@ class WatchStrictInitFields {
 
             TestClass(int v1, int v2, int v3) {
                 super(v1, v2);
-                x = v3;                // modification event not sent
-                assertEquals(v3, x);   // access event not sent
+                x = v3;                // modification event
+                assertEquals(v3, x);   // access event
             }
         }
 
@@ -432,15 +432,15 @@ class WatchStrictInitFields {
             @StrictInit int x;
 
             TestClass(int v1, int v2) {
-                x = v1;                // modification event not sent
-                super(v2);
-                assertEquals(v2, x);   // access event not sent
+                x = v1;                // modification event not sent before super
+                super(v2);             // events not sent when "in super"
+                assertEquals(v2, x);   // access event after super
             }
 
             TestClass(int v1, int v2, int v3) {
                 this(v1, v2);
-                x = v3;                // modification event not sent
-                assertEquals(v3, x);   // access event not sent
+                x = v3;                // modification event
+                assertEquals(v3, x);   // access event
             }
 
             void x(int newX) {
@@ -457,7 +457,7 @@ class WatchStrictInitFields {
             try (var _ = watch(TestClass.class, "x")) {
                 var obj = new TestClass(100, 200);
                 assertEquals(0, modCount());
-                assertEquals(1, accessCount());
+                assertEquals(1, accessCount());   // after super
 
                 // modify after construction
                 obj.x = 300;
@@ -510,7 +510,7 @@ class WatchStrictInitFields {
             @StrictInit Box x;
 
             TestClass(int v1) {
-                x = new Box(v1);      // no modification event sent
+                x = new Box(v1);      // no modification event
                 super();
                 var _ = x;            // access event
             }
@@ -528,11 +528,11 @@ class WatchStrictInitFields {
             }
 
             void x(int v3) {
-                x = new Box(v3);     // 2 x modification events?
+                x = new Box(v3);     // 2 x modification events
             }
 
             int x() {
-                return x.value;       // 2 x access events?
+                return x.value;       // 2 x access events
             }
         }
 
@@ -600,7 +600,7 @@ class WatchStrictInitFields {
             TestClass(int v1) {
                 x = v1;               // modification event not sent
                 super();
-                assertEquals(v1, x);  // access event not sent
+                assertEquals(v1, x);  // access event
             }
 
             int x() {
@@ -643,7 +643,7 @@ class WatchStrictInitFields {
             TestClass(int x) {
                 this.x = x;                // modification event not sent
                 super();
-                assertEquals(x, this.x);   // access event not sent
+                assertEquals(x, this.x);   // access event
             }
         }
 
@@ -725,7 +725,10 @@ class WatchStrictInitFields {
 
             static {
                 x = 100;                // modification event not sent
-                assertEquals(100, x);   // access event not sent
+
+                // (all strict fields have initial value)
+
+                assertEquals(100, x);   // access event
                 postSet(200);
                 x = 300;                // modification event not sent
                 assertEquals(300, x);   // access event not sent
@@ -770,20 +773,23 @@ class WatchStrictInitFields {
             static {
                 x = 100;                 // modification event not sent
                 y = 101;                 // modification event not sent
-                assertEquals(100, x);    // access event not sent
-                assertEquals(101, y);    // access event not sent
+
+                // (all strict fields have initial value)
+
+                assertEquals(100, x);    // access event
+                assertEquals(101, y);    // access event
                 postSet(200, 201);
-                x = 300;                 // modification event not sent
-                y = 301;                 // modification event not sent
-                assertEquals(300, x);    // access event not sent
-                assertEquals(301, y);    // access event not sent
+                x = 300;                 // modification event
+                y = 301;                 // modification event
+                assertEquals(300, x);    // access event
+                assertEquals(301, y);    // access event
             }
 
             static void postSet(int newX, int newY) {
-                x = newX;                // modification event not sent
-                y = newY;                // modification event not sent
-                assertEquals(newX, x);   // access event not sent
-                assertEquals(newY, y);   // access event not sent
+                x = newX;                // modification event
+                y = newY;                // modification event
+                assertEquals(newX, x);   // access event
+                assertEquals(newY, y);   // access event
             }
         }
 
@@ -830,10 +836,9 @@ class WatchStrictInitFields {
                 y = 200;      // modification event not sent
                 var _ =  x;   // access event not sent
                 var _ =  y;   // access event not sent
-
                 z = 300;      // modification event not sent
 
-                // all strict static fields are now set
+                // (all strict fields have initial value)
 
                 var _ =  z;   // access event
             }
@@ -872,7 +877,10 @@ class WatchStrictInitFields {
                 }
 
                 x = 100;                // modification event not sent
-                assertEquals(100, x);   // access event not sent
+
+                // (all strict fields have initial value)
+
+                assertEquals(100, x);   // access event
             }
         }
 
