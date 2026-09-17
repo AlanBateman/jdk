@@ -165,6 +165,7 @@ public:
   // CDS
 #if INCLUDE_CDS
   void remove_unshareable_info();
+  void record_archivable_classes();
   void mark_and_relocate();
 #endif
 
