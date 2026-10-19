@@ -88,6 +88,7 @@ class TraceUsageTest {
     @Test
     void testAgentmain() throws Exception {
         OutputAnalyzer outputAnalyzer = execute(
+                "-XX:+EnableDynamicAgentLoading",
                 "-Djdk.attach.allowAttachSelf=true",
                 "-Djdk.instrument.traceUsage=true",
                 "TraceUsageTest",

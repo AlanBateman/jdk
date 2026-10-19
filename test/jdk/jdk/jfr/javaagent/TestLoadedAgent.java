@@ -35,7 +35,7 @@
  * @run driver jdk.test.lib.util.JavaAgentBuilder
  *             jdk.jfr.javaagent.EventEmitterAgent EventEmitterAgent.jar
  *
- * @run main/othervm -Djdk.attach.allowAttachSelf=true jdk.jfr.javaagent.TestLoadedAgent
+ * @run main/othervm -XX:+EnableDynamicAgentLoading -Djdk.attach.allowAttachSelf=true jdk.jfr.javaagent.TestLoadedAgent
  */
 
 package jdk.jfr.javaagent;
