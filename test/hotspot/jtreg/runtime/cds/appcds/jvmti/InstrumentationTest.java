@@ -115,6 +115,7 @@ public class InstrumentationTest {
             .setXShareMode("off")
             .addSuffix(bootCP,
                        "-cp", appJar,
+                       "-XX:+EnableDynamicAgentLoading",
                        "-XX:+UnlockDiagnosticVMOptions",
                        "-XX:+WhiteBoxAPI",
                        "-Xshare:off",
@@ -152,6 +153,7 @@ public class InstrumentationTest {
         t = doAttach(attachAgent, flagFile, agentJar);
         out = TestCommon.execAuto("-cp", appJar,
                 bootCP,
+                "-XX:+EnableDynamicAgentLoading",
                 "-XX:+UnlockDiagnosticVMOptions",
                 "-XX:+WhiteBoxAPI",
                 agentCmdArg,

@@ -29,7 +29,7 @@ import jdk.test.lib.process.OutputAnalyzer;
  * @comment muslc dlclose is a no-op, see 8285921
  * @requires !vm.musl
  * @library /test/lib
- * @run testng AttachReturnError
+ * @run testng/othervm -XX:+EnableDynamicAgentLoading AttachReturnError
  */
 public class AttachReturnError extends AttachFailedTestBase {
     @Override

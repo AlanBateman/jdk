@@ -27,7 +27,8 @@ import jdk.test.lib.process.OutputAnalyzer;
  * @test
  * @bug 8165736
  * @library /test/lib
- * @run testng AttachNoEntry
+ * @run testng/othervm -XX:+EnableDynamicAgentLoading AttachNoEntry
+ *
  */
 public class AttachNoEntry extends AttachFailedTestBase {
     @Override

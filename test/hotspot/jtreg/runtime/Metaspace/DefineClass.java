@@ -40,9 +40,9 @@
  * @run main/othervm -Xbootclasspath/a:. -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI
  *                   -XX:-AllowParallelDefineClass
  *                   test.DefineClass defineClassParallel
- * @run main/othervm -Xbootclasspath/a:. -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI
+ * @run main/othervm -Xbootclasspath/a:. -XX:+EnableDynamicAgentLoading -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI
  *                   -Djdk.attach.allowAttachSelf test.DefineClass redefineClass
- * @run main/othervm -Xbootclasspath/a:. -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI
+ * @run main/othervm -Xbootclasspath/a:. -XX:+EnableDynamicAgentLoading -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI
  *                   -Djdk.attach.allowAttachSelf test.DefineClass redefineClassWithError
  * @author volker.simonis@gmail.com
  */

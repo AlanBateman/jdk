@@ -141,6 +141,8 @@
  *
  * <h3>Starting an agent in a running JVM</h3>
  *
+ * ?? updates needed??
+ *
  * <p> An implementation may provide a mechanism to start agents in a running JVM (meaning
  * after JVM startup). The details as to how this is initiated are implementation specific
  * but typically the application has already started, and its {@code main} method has

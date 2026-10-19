@@ -31,7 +31,7 @@
  *
  * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
  * @run main/othervm/native -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI -Xbootclasspath/a:. -agentlib:ToggleNotifyJvmtiTest ToggleNotifyJvmtiTest
- * @run main/othervm/native -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI -Xbootclasspath/a:. -Djdk.attach.allowAttachSelf=true ToggleNotifyJvmtiTest attach
+ * @run main/othervm/native -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI -XX:+EnableDynamicAgentLoading -Xbootclasspath/a:. -Djdk.attach.allowAttachSelf=true ToggleNotifyJvmtiTest attach
  */
 
 import com.sun.tools.attach.VirtualMachine;
