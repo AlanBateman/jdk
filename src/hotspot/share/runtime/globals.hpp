@@ -1773,7 +1773,7 @@ const int ObjectAlignmentInBytes = 8;
   product(bool, StartAttachListener, false,                                 \
           "Always start Attach Listener at VM startup")                     \
                                                                             \
-  product(bool, EnableDynamicAgentLoading, false,                           \
+  product(bool, EnableDynamicAgentLoading, true,                            \
           "Allow tools to load agents with the attach mechanism")           \
                                                                             \
   product(bool, PrintConcurrentLocks, false, MANAGEABLE,                    \
